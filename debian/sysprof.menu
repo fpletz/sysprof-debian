@@ -1,0 +1,4 @@
+?package(sysprof):command="/usr/bin/sysprof" \
+  needs="x11" \
+  section="Apps/Programming" title="Sysprof" \
+  icon="/usr/share/pixmaps/sysprof.xpm"

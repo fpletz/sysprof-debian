@@ -1,0 +1,66 @@
+sysprof (1.0.7-1) unstable; urgency=low
+
+  * New upstream release.
+  * Let dh_installmodule take care of the modules, closes: #381769.
+  * Updated package_version.dpatch.
+
+ -- Samuel Mimram <smimram@debian.org>  Mon, 20 Nov 2006 10:14:50 +0000
+
+sysprof (1.0.3-2) unstable; urgency=low
+
+  * Build-depend on binutils-dev (>= 2.17-1), closes: #378413.
+
+ -- Samuel Mimram <smimram@debian.org>  Sun, 16 Jul 2006 10:15:09 +0000
+
+sysprof (1.0.3-1) unstable; urgency=low
+
+  * New upstream release.
+  * Does not crash anymore, closes: #370129.
+
+ -- Samuel Mimram <smimram@debian.org>  Sat, 10 Jun 2006 11:57:07 +0200
+
+sysprof (1.0.2-2) unstable; urgency=low
+
+  * Rebuild in order to avoid a SEGV, closes: #370129.
+  * Updated standards version to 3.7.2, no changes needed.
+
+ -- Samuel Mimram <smimram@debian.org>  Sun,  4 Jun 2006 16:49:53 +0200
+
+sysprof (1.0.2-1) unstable; urgency=low
+
+  * New upstream release.
+  * Added foreign_kernel.dpatch to avoid the need of a configure when building
+    the module.
+  * Removed x86_64.dpatch, integrated upstream.
+
+ -- Samuel Mimram <smimram@debian.org>  Fri,  3 Mar 2006 22:32:02 +0100
+
+sysprof (1.0.1-4) unstable; urgency=low
+
+  * Module should now be compilable for a kernel diffrent from the one
+    currently running, closes: #352305.
+
+ -- Samuel Mimram <smimram@debian.org>  Sun, 12 Feb 2006 17:29:32 +0100
+
+sysprof (1.0.1-3) unstable; urgency=low
+
+  * Using dpatch to handle patches.
+  * Added x86_64.dpatch to correct and int / long mismatch.
+  * Installing documentation in sysprof-module-source too.
+  * Added an icon for menu.
+
+ -- Samuel Mimram <smimram@debian.org>  Wed, 11 Jan 2006 19:08:08 +0100
+
+sysprof (1.0.1-2) unstable; urgency=low
+
+  * Supported archs are only i386, amd64 and ia64.
+  * Enhanced description.
+
+ -- Samuel Mimram <smimram@debian.org>  Sat, 31 Dec 2005 01:00:29 +0100
+
+sysprof (1.0.1-1) unstable; urgency=low
+
+  * Initial release, closes: #344906.
+
+ -- Samuel Mimram <smimram@debian.org>  Tue, 27 Dec 2005 14:12:01 +0100
+
