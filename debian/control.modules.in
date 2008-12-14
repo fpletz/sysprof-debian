@@ -2,8 +2,8 @@ Source: sysprof
 Section: devel
 Priority: optional
 Maintainer: Samuel Mimram <smimram@debian.org>
-Build-Depends: debhelper (>= 4.1.0), bzip2
-Standards-Version: 3.7.2
+Build-Depends: debhelper (>= 5.0.37), bzip2
+Standards-Version: 3.8.0
 
 Package: sysprof-module-_KVERS_
 Architecture: any

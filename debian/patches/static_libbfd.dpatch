@@ -1,0 +1,31 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## static_libbfd.dpatch by Michel Dänzer <daenzer@debian.org>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Link statically with libbfd.
+
+@DPATCH@
+diff -urNad sysprof-1.0.9~/configure sysprof-1.0.9/configure
+--- sysprof-1.0.9~/configure	2007-10-21 23:42:22.000000000 +0200
++++ sysprof-1.0.9/configure	2008-01-25 19:19:41.000000000 +0100
+@@ -3759,7 +3759,7 @@
+ { $as_echo "$as_me:$LINENO: result: $ac_cv_lib_bfd_bfd_get_error" >&5
+ $as_echo "$ac_cv_lib_bfd_bfd_get_error" >&6; }
+ if test "x$ac_cv_lib_bfd_bfd_get_error" = x""yes; then
+-  DEP_LIBS="$DEP_LIBS -lbfd -liberty"
++  DEP_LIBS="$DEP_LIBS /usr/lib/libbfd.a -liberty"
+ else
+   { { $as_echo "$as_me:$LINENO: error: libbfd is required to compile sysprof" >&5
+ $as_echo "$as_me: error: libbfd is required to compile sysprof" >&2;}
+diff -urNad sysprof-1.0.9~/configure.ac sysprof-1.0.9/configure.ac
+--- sysprof-1.0.9~/configure.ac	2007-10-21 23:42:16.000000000 +0200
++++ sysprof-1.0.9/configure.ac	2008-01-25 19:19:41.000000000 +0100
+@@ -90,7 +90,7 @@
+   AC_CHECK_LIB(iberty, cplus_demangle_opname, [],
+     AC_MSG_ERROR([libiberty is required to compile sysprof]), -ldl))
+ 
+-AC_CHECK_LIB(bfd, bfd_get_error, [DEP_LIBS="$DEP_LIBS -lbfd -liberty"],
++AC_CHECK_LIB(bfd, bfd_get_error, [DEP_LIBS="$DEP_LIBS /usr/lib/libbfd.a -liberty"],
+   AC_MSG_ERROR([libbfd is required to compile sysprof]),
+   -liberty)
+ 

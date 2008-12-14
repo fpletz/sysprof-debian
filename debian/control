@@ -1,15 +1,15 @@
 Source: sysprof
 Section: devel
 Priority: optional
-Maintainer: Samuel Mimram <smimram@debian.org>
-Build-Depends: debhelper (>= 5.0.37), autotools-dev, automake1.9, binutils-dev (>= 2.17-1), bzip2, libgtk2.0-dev (>= 2.6.0), libglade2-dev, dpatch
-Standards-Version: 3.7.2
+Maintainer: Debian QA Group <packages@qa.debian.org>
+Build-Depends: debhelper (>= 5.0.37), autotools-dev, automake1.9, binutils-dev (>= 2.17), bzip2, libgtk2.0-dev (>= 2.6.0), libglade2-dev, dpatch
+Standards-Version: 3.8.0
 
 Package: sysprof
-Architecture: i386 amd64 ia64
+Architecture: i386 amd64
 Depends: ${shlibs:Depends}
 Recommends: sysprof-module-source
-Description: A system-wide linux profiler
+Description: A system-wide Linux profiler
  Sysprof is a sampling CPU profiler that uses a Linux kernel module to profile
  the entire system, not just a single application. Sysprof handles shared
  libraries and applications do not need to be recompiled. In fact they don't
@@ -25,7 +25,7 @@ Description: A system-wide linux profiler
  sysprof.
 
 Package: sysprof-module-source
-Architecture: i386 amd64 ia64
+Architecture: all
 Depends: debhelper (>= 4.1.0), build-essential, module-assistant, bzip2
 Description: Source for the sysprof module
  Sysprof is a sampling CPU profiler that uses a Linux kernel module to profile
@@ -35,4 +35,5 @@ Description: Source for the sysprof module
  .
  This package contains the source for the sysprof's kernel module.
  .
- You need a linux kernel version 2.6.11 or newer.
+ You need a Linux kernel version 2.6.11 or newer on an i386 or amd64
+ processor.

@@ -55,7 +55,7 @@ clean: unpatch
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp
-	-$(MAKE) distclean
+	[ ! -f Makefile ] || $(MAKE) distclean
 	rm -f config.log
 	dh_clean
 
@@ -68,6 +68,8 @@ install: build
 	# Install sysprof.
 	make install DESTDIR=$(SYSPROFDIR)
 	cp debian/sysprof.xpm $(SYSPROFDIR)/usr/share/pixmaps
+	mkdir -p $(SYSPROFDIR)/usr/share/applications
+	cp debian/sysprof.desktop $(SYSPROFDIR)/usr/share/applications
 
 	# Install the sources of the kernel module.
 	install -D -m 0755 debian/rules.modules debian/tmp/modules/sysprof-module/debian/rules
