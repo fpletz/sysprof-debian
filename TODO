@@ -1,0 +1,637 @@
+Before 1.0:
+
+   - Update version numbers in source
+
+   - Make tarball
+
+   - Check that tarball works
+
+   - cvs commit
+
+   - cvs tag sysprof-1-0
+
+   - Update website
+
+   - Announce on Freshmeat
+
+   - Announce on gnome-announce
+   - Announce on kernel list.
+
+   - Announce on Gnomefiles
+
+   - Announce on news.gnome.org
+   - Send to slashdot/developers
+   - Announce on devtools list (?)
+
+   - Announce on Advogato
+	link to archive 
+
+Before 1.0.1:
+
+* See if we can reproduce the problem where libraries didn't get correctly
+  reloaded after new versions were installed.
+
+* Build system
+   - Find out what distributions it actually works on
+       (ask for sucess/failure-stories in 1.0 releases)
+
+   - Create RPM package? See fedora-packaging-list for information
+     about how to package kernel modules. Lots of threads in
+     June 2005 and forward.
+
+     See also http://www.fedoraproject.org/wiki/Extras/KernelModuleProposal
+
+Before 1.2:
+	
+* See if the auto-expanding can be made more intelligent
+
+* Send entire stack to user space, then do stackwalking there. That would
+  allow us to do more complex algorithms, like dwarf, in userspace. Though
+  we'd lose the ability to do non-racy file naming. We could pass a list
+  of the process mappings with each stack though.
+
+* If interrupt happens in kernel mode, send both
+  kernel stack and user space stack, have userspace stitch them
+  together. (User space stack must probably be done in a thread - kernel 
+  stack must probably be taken in the interrupt itself?
+  - Why this difference? The page tables should still be loaded. Is it
+    because pages_present() doesn't work? No, turning it off doesn't help.
+  - It looks like this works. Get:
+
+       struct pt_regs *user_regs =
+          (void *)current->thread.esp0 - sizeof (struct pt_regs);
+
+    then use pages_present as usual to trace with user_regs; There could be
+    rare lockups though.
+
+* Correctness
+	- When the module is unloaded, kill all processes blocking in read
+		- or block unloading until all processes have exited
+	  Unfortunately this is basically impossible to do with a /proc
+	  file (no open() notification). So, for 1.0 this will have to be
+	  a dont-do-that-then. For 1.2, we should do it with a sysfs and
+	  kobject instead.
+
+	- When the module is unloaded, can we somehow *guarantee* that no
+	  kernel thread is active? Doesn't look like it; however we can
+	  get close by decreasing a ref count just before returning
+	  from the module. (There may still be return instructions etc.
+	  that will get run). This may not be an issue with the timer
+  	  based scanning we are using currently.
+
+- See if there is a way to make it distcheck
+
+- grep FIXME - not10
+
+- translation should be hooked up 
+
+- Consider adding "at least 5% inclusive cost" filter
+
+- consider having the ability to group a function together with its nearest
+  neighbours. That way we can eliminate some of the effect of 
+	"one function taking 10% of the time"
+  vs.
+	"the same function broken into ten functions each taking 1%"
+  Not clear what the UI looks like though.
+
+- Ability to generate "screenshots" suitable for mail/blog/etc
+	UI: "generate screenshot" menu item pops up a window with
+	a text area + a radio buttons "text/html". When you flick
+	them, the text area is automatically updated.
+
+- Fixing the oops in kernels < 2.6.11
+
+	- Probably just require 2.6.11 (necessary for timer interrupt
+          based anyway).
+
+	- Make the process waiting in poll() responsible for extracting
+	  the backtrace. Give a copy of the entire stack rather than doing
+	  the walk inside the kernel. 
+
+		New model:
+			- Two arrays, 
+				one of actual scanned stacks
+				one of tasks that need to be scanned
+			  One wait queue,
+				wait for data
+
+			- in read() wait for stack data:
+				scan_tasks()
+				if (!stack_data)
+					return -EWOULDBLOCK;
+
+			  in poll()
+				while (!stack data) {
+					wait_for_data();
+					scan_tasks();
+				}
+				return READABLE;
+
+			  scan_tasks() is a function that converts waiting
+			  tasks into data, and wakes them up.
+
+			- in timer interrupt:
+
+				if (someone waiting in poll() &&
+				    current && current != that_someone &&
+				    current is runnable)
+				{
+					stop current;
+					add current to queue;
+					wake wait_for_data;
+				}
+
+			This way, we will have a real userspace process
+			that can take the page faults.
+
+		
+		- Different approach:
+
+			pollable file where a regular userspace process
+			can read a pid. Any pid returned is guaranteed to be 
+			UNINTERRUPTIBLE. Userspace process is required to
+			start it again when it is done with it.
+
+			Also provide interface to read arbitrary memory of
+			that process.
+
+			ptrace() could in principle do all this, but 
+			unfortunately it sucks to continuously 
+			ptrace() processes.
+
+		- Yet another
+
+			Userspace process can register itself as "profiler"
+			and pass in a filedescriptor where all sorts of
+			information is sent. 
+
+				- could tie lifetime of module to profiler
+				- could send "module going away" information
+				- Can we map filedescriptors to files in
+				  a module?
+
+- Find out how gdb does backtraces; they may have a better way. Also
+  find out what dwarf2 is and how to use it. Look into libunwind.
+  It seems gdb is capable of doing backtraces of code that neither has
+  a framepointer nor has debug info. It appears gdb uses the contents
+  of the ".eh_frame" section. There is also an ".eh_frame_hdr" section.
+
+http://www.linuxbase.org/spec/booksets/LSB-Embedded/LSB-Embedded/ehframe.html
+
+  look in dwarf2-frame.[ch] in the gdb distribution. 
+
+- Make busy cursors more intelligent
+	- when you click something in the main list and we don't respond
+		within 50ms (or perhaps when we expect to not be able to do
+		so (can we know the size in advance?))
+	- instead of what we do now: set the busy cursor unconditionally
+	
+- Reorganise stackstash and profile
+
+	- stackstash should just take traces of addresses without knowing
+	  anything about what those addresses mean
+
+	- stacktraces should then begin with a process
+
+	- profile should take traces of pointers to presentation
+	  objects without knowing anything about these presentation
+	  objects.
+
+	- Creating a profile is then
+
+		- For each stack node, compute a presentation object
+			(probably need to export opaque stacknode objects
+			  with set/get_user_data)
+
+		- Send each stack trace to the profile module, along with
+		  presentation objects. Maybe just a map from stack nodes
+		  to presentation objects.
+
+- Charge 'self' properly to processes that don't get any stack trace at all 
+	(probably we get that for free with stackstash reorganisation)
+
+- support more than one reader of the samples properly
+	- Don't generate them if noone cares
+	- When not profiling, sysprof shouldn't care
+
+- Add ability to show more than one function at a time. Algorithm:
+	Find all relevant nodes;
+	For each relevant node
+		best_so_far = relevant node
+		walk towards root
+			if node is relevant,
+				best_so_far = relevant
+	        add best_so_far to interesting
+	for each interesting
+		list leaves
+		for each leaf
+			add trace to tree (leaf, interesting)
+- Consider adding KDE-style nested callgraph view
+	- probably need a dependency on gtk+ 2.8 (cairo) for this.
+- Add support for line numbers within functions
+	- Possibly a special "view details" mode, assuming that 
+	  the details of a function are not that interesting 
+	  together with a tree.
+- rethink caller list, not terribly useful at the moment. Federico suggested
+  listing all ancestors.
+
+
+- Have kernel module report the file the address was found in
+	Should avoid a lot of potential broken/raciness with dlopen etc.
+- Make things faster
+	- Can I get it to profile itself?
+	- speedprof seems to report that lots of time is spent in 
+	  stack_stash_foreach() and also in generate_key()
+- add an 'everything' object. It is really needed for a lot of things
+	- should be easy to do with stackstash reorganization.
+
+- Non-GUI version that can save in a format the GUI can understand.
+  Could be used for profiling startup etc. Would preferably be able to
+  dump the data to a network socket. Should be able to react to eg.
+  SIGUSR1 by dumping the data.
+
+  Work done by Lorenzo:
+
+  http://www.colitti.com/lorenzo/software/gnome-startup/sysprof-text.diff
+  http://www.colitti.com/lorenzo/software/gnome-startup/sysprof.log
+  http://colitti.com/lorenzo/software/gnome-startup/
+
+- Figure out how Google's pprof script works. Then add real call graph 
+  drawing. (google's script is really simple; uses dot from graphviz).
+
+- hide internal stuff in ProfileDescendant
+
+- possibly add dependency on glib 2.8 if it is released at that point.
+  (g_file_replace())
+
+- somehow get access to VSEnterprise profiler and see how it works.
+  somehow get access to vtune and see how it works.
+
+Later:
+
+- See if it is possible to group the X server activity under the process that
+  generated it.
+
+- .desktop file
+	[Is this worth it? You will often want to start it as root, 
+	 and you will need to insert the module from the command line]
+- Applications should be able to say "start profiling", "stop profiling"
+  so that you can limit the profiling to specific areas.
+	Idea:
+		Add a new kernel interface that applications uses to say
+		begin/end.
+		Then add a timeline where you can mark interesting regions,
+		for example those that applications have marked interesting.
+
+- Find out how to hack around gtk+ bug causing multiple double clicks 
+  to get eaten.
+
+- Consider what it would take to take stacktraces of other languages
+
+	- perl, 
+	- python
+	- java
+	- bash
+
+  Possible solution is for the script binaries to have a function
+  called something like 
+
+	__sysprof__generate_stacktrace (char **functions, int *n_functions);
+
+  that the sysprof kernel module could call (and make return to the kernel).
+
+  This function would behave essentially like a signal handler: couldn't
+  call malloc(), couldn't call printf(), etc. 
+
+  Note thought that scripting languages will generally have a stack with 
+  both script-binary-stack, script stack, and library stacks. We wouldn't
+  want scripts to need to parse dwarf. Also if we do that thing with 
+  sending the entire stack to userspace, things will be further complicated.
+
+- Consider this usecase:
+	Someone is considering replacing malloc()/free() with a freelist
+	for a certain data structure. All use of this data structure is 
+	confined to one function, foo(). It is now interesting to know
+	how much time that particular function spends on malloc() and free()
+	combined.
+
+	Possible UI:
+
+		- Select foo(), 
+		- find an instance of malloc()
+		- shift-click on it,
+		-       all traces with malloc are removed
+		- 	a new item "..." appears immeidately below foo()
+		-       malloc is added below "..."
+  		- same for free
+		- at this point, the desired data can be read at comulative
+		  for "..." 
+
+	Actually, with this UI, you could potentially get rid of the
+	caller list: Just present the call tree under an <everything> root, 
+	and use ... to  single out the stuff you are interested in.
+
+	Maybe also get rid of 'callers' by having a new "show details"
+	dialog or something.
+
+	The complete solution here degenerates into "expressions":
+
+		"foo" and ("malloc" or "free")
+
+	Having that would also take care of the "multiple functions"
+	above. Noone would understand it, though.
+
+- figure out a way to deal with both disk and CPU. Need to make sure that
+  things that are UNINTERRUPTIBLE while there are RUNNING tasks are not
+  considered bad. Also figure out how to deal with more than one CPU/core.
+
+  Not entirely clear that the sysprof visualization is right for disk.
+
+  Maybe assign a size of n to traces with n *unique* disk access (ie. 
+  disk accesses that are not required by any other stack trace).
+
+  Or assign values to nodes in the calltree based on how many diskaccesses
+  are contained in that tree. Ie., if I get rid of this branch, how many
+  disk accesses would that get rid of.
+
+  Or turn it around and look at individual disk accesses and see what it
+  would take to get rid of it. Ie., a number of traces are associated with
+  any given diskaccess. Just show those. 
+
+  Or for a given tree with contained disk accesses, figure out what *other*
+  traces has the same diskaccesses.
+
+  Or visualize a set of squares with a color that is more saturated depending
+  on the number of unique stack traces that access it. Then look for the
+  lightly saturated ones. 
+
+  The input to the profiler would basically be
+
+	(stack trace, badness, cookie)
+
+   For CPU:     badness=10ms,					      cookie=<a new one always>
+   For Disk:    badness=<calculated based on previous disk accesses>, cookie=<the accessed disk block>
+
+   For Memory:  badness=<cache line size not in cache>,		      cookie=<the address>
+
+   Cookies are used to figure out whether an access is really the same, ie., for two identical
+   cookies, the size is still just one, however 
+   
+   Memory is different from disk because you can't reasonably assume that stuff that has
+   been read will stay in cache (for short profile runs you can assume that with disk,
+   but not for long ones).
+
+   - Perhaps show a timeline with CPU in one color and disk in one color. Allow people to
+     look at at subintervals of this timeline. Is it useful to look at both CPU and disk at 
+     the same time? Probably not. See also marker discussion above. UI should probably allow
+     double clicking on a marked section and all instances of that one would be marked.
+
+   - Other variation on the timeline idea: Instead of a disk timeline you could have a 
+     list of individual diskaccesses, and be able to select the ones you wanted to
+     get rid of.
+
+   - The existing sysprof visualization is not terribly bad, the "self" column is
+     more useful now. 
+
+   - See what files are accessed so that you can get a getter idea of what
+     the system is doing. 
+
+   - Optimization usecases:
+
+	- A lot of stuff is read synchronously, but it is possible to read it asynchronously.
+	  Visualization: A timeline with alternating CPU/disk activity. 
+
+	- What function is doing all the synchronous reading, and what files/offsets is
+	  it reading. Visualization: lots of reads across different files out of one 
+	  function
+
+	- A piece of the program is doing disk I/O. We can drop that entire piece of
+  	  code. Sysprof visualization is ok, although seeing the files accessed is useful
+ 	  so that we can tell if those files are not just going to be used in
+	  other places. (Gnumeric plugin_init()).
+
+	- A function is reading a file synchronously, but there is other (CPU/disk) stuff
+	  that could be done at the same time. Visualization: A piece of the timeline 
+	  is diskbound with little or no CPU used.
+
+	- Want to improve code locality of library or binary. Visualization: no GUI, just
+	  produce a list of functions that should be put first in the file. Then run the
+	  program again until the list converges. (Valgrind may be more useful here).
+
+	- Nautilus reads a ton of files, icons + all the files in the homedirectory.
+	  Normal sysprof visualization is probably useful enough.
+
+	- Profiling a login session. 
+
+    - Need to report stat() as well. (Where do inode data end up? In the buffer-cache?)
+      Also open() may cause disk reads (seeks).
+
+    - To generate the timeline we need to know when a disk request is issued and when it
+      is completed. This way we can assign blame to all applications that have issued a
+      disk request at a given point in time. 
+
+	The disk timeline should probably vary in intensity with the number of outstanding
+	disk requests.
+
+DONE:
+
+* consider caching [filename => bin_file]
+
+* Check the kernel we are building against, if it is SMP or 
+  less than 2.6.11, print a warning and suggest upgrading.
+
+* Timer interrupt based
+
+* Interface
+	- Consider expanding a few more levels of a new descendants tree 
+		- Algorithm should be expand in proportion to the
+		  "total" percentage. Basically consider 'total' the
+		  likelyhood that the user is going to look at it.
+		- Maybe just; keep expanding the biggest total until 
+		  there is no more room or we run out of things to expand.
+
+* Web page containing
+
+	- Screen shots
+	- Explanation of what it is
+	- Download
+	- Bug reporting
+	- Contact info
+	- Ask for sucess/failure reports
+- hook up menu items view/start etc (or possibly get rid of them or
+  move them)
+- Should do as suggested in the automake manual in the 
+  chapter "when automake is not enough"
+- add an "insert-module" target
+- need to run depmod on install
+- If the current profile has a name, display it in the title bar
+- auto*?	
+- Find out if that PREFIX business in Makefile was really such
+  a great idea.
+- Sould just install the kernel module if it running as root, pop up
+  a dialog if not. Note we must be able to start without module now, 
+  since it is useful to just load profiles from disk.
+	- Is there a portable way of asking for the root password?
+	- Install a small suid program that only inserts the module?
+		(instant security hole ..)
+- Need to make "make install" work (how do you know where to install
+  kernel modules?)
+	- in /lib/modules/`uname -r`/kernel/drivers/
+	- need to run depmod as root after that
+	- Then modprobe run as root should correctly find it.
+
+- grep FIXME
+
+- give profiles on the command line
+
+- Hopefully the oops at the end of this file is gone now that
+  we use mmput/get_task_mm.  For older kernels those symbols
+  are not exported though, so we will probably have to either
+  use the old way (directly accessing the mm's) or just not
+  support those kernels.
+
+- Need an icon
+
+- hook up about box
+
+- Add busy cursors,
+	- when you hit "Profile"
+	- when you click something in the main list and we don't respond
+		within 50ms (or perhaps when we expect to not be able to do
+		so (can we know the size in advance?))
+
+- kernel module should put process to sleep before sampling. Should get us
+  more accurate data
+
+- Make sure samples label shows correct nunber after Open
+
+- Move "samples" label to the toolbar, then get rid of statusbar.
+
+- crashes when you ctrl-click the selected item in the top left pane
+   <ian__> ssp: looks like it doesn't handle the none-selected case
+
+- loading and saving
+
+- consider making ProfileObject more of an object.
+
+- make an "everything" object
+       maybe not necessary -- there is a libc_ctors_something()
+
+- make presentation strings nicer
+
+  four different kinds of symbols:
+
+       a) I know exactly what this is
+       b) I know in what library this is
+       c) I know only the process that did this
+       d) I know the name, but there is another similarly named one
+
+  (a) is easy,  (b) should be <in ...>    (c) should just become "???" 
+  (d) not sure
+
+- processes with a cmdline of "" should get a [pid = %d] instead.
+
+- make an "n samples" label
+Process stuff:
+
+- make threads be reported together 
+  (simply report pids with similar command lines together)
+  (note: it seems separating by pid is way too slow (uses too much memory),
+  so it has to be like this)
+
+- stack stash should allow different pids to refer to the same root
+  (ie. there is no need to create a new tree for each pid)
+   The *leaves* should contain the pid, not the root. You could even imagine
+   a set of processes, each referring to a set of leaves. 
+
+- when we see a new pid, immediately capture its mappings
+
+Road map:
+     - new object Process
+       - hashable by pointer
+       - contains list of maps
+       - process_from_pid (pid_t pid, gboolean join_threads)
+       	 - new processes are gets their maps immediately
+	 - resulting pointer must be unref()ed, but it is possible it
+	   just points to an existing process
+	 - processes with identical cmdlines are taken together
+       - method lookup_symbol()
+       - method get_name()
+       - ref/unref
+     - StackStash stores map from process to leaves
+     - Profile is called with processes
+
+It is possible that we simply need a better concept of Process:
+
+     If two pids have the same command line, consider them the same, period.
+     This should save considerable amounts of memory.
+
+     The assumptions: 
+
+     	 "No pids are reused during a profiling run"
+	 "Two processes with the same command line have the same mappings"
+
+     are somewhat dubious, but probably necessary.
+
+     (More complex kernel:
+
+     	   have the module report
+	   	
+		- new pid arrived (along with mappings)
+		- mapping changed for pid
+		- stacktrace)
+
+- make symbols in executable work
+- the hashtables used in profile.c should not accept NULL as the key
+- make callers work
+- autoexpand descendant tree
+- make double clicks work
+- fix leaks
+
+
+- Find out what happened here:
+
+Apr 11 15:42:08 great-sage-equal-to-heaven kernel: Unable to handle kernel NULL pointer dereference at virtual address 000001b8
+Apr 11 15:42:08 great-sage-equal-to-heaven kernel:  printing eip:
+Apr 11 15:42:08 great-sage-equal-to-heaven kernel: c017342c
+Apr 11 15:42:08 great-sage-equal-to-heaven kernel: *pde = 00000000
+Apr 11 15:42:08 great-sage-equal-to-heaven kernel: Oops: 0000 [#1]
+Apr 11 15:42:08 great-sage-equal-to-heaven kernel: Modules linked in: sysprof_module(U) i2c_algo_bit md5 ipv6 parport_pc lp parport autofs4 sunrpc video button battery ac ohci1394 ieee1394 uhci_hcd ehci_hcd hw_random tpm_atmel tpm i2c_i801 i2c_core snd_intel8x0 snd_ac97_codec snd_pcm_oss snd_mixer_oss snd_pcm snd_timer snd soundcore snd_page_alloc e1000 floppy dm_snapshot dm_zero dm_mirror ext3 jbd dm_mod ata_piix libata sd_mod scsi_mod
+Apr 11 15:42:08 great-sage-equal-to-heaven kernel: CPU:    0
+Apr 11 15:42:08 great-sage-equal-to-heaven kernel: EIP:    0060:[<c017342c>]    Not tainted VLI
+Apr 11 15:42:08 great-sage-equal-to-heaven kernel: EFLAGS: 00010287   (2.6.11-1.1225_FC4)
+Apr 11 15:42:08 great-sage-equal-to-heaven kernel: EIP is at grab_swap_token+0x35/0x21f
+Apr 11 15:42:08 great-sage-equal-to-heaven kernel: eax: 0bd48023   ebx: d831d028   ecx: 00000282   edx: 00000000
+Apr 11 15:42:08 great-sage-equal-to-heaven kernel: esi: c1b72934   edi: c1045820   ebp: c1b703f0   esp: c18dbdd8
+Apr 11 15:42:08 great-sage-equal-to-heaven kernel: ds: 007b   es: 007b   ss: 0068
+Apr 11 15:42:08 great-sage-equal-to-heaven kernel: Process events/0 (pid: 3, threadinfo=c18db000 task=f7e62000)
+Apr 11 15:42:09 great-sage-equal-to-heaven kernel: Stack: 000011a8 00000000 000011a8 c1b703f0 c0151731 c016f58f 000011a8 c1b72934
+Apr 11 15:42:09 great-sage-equal-to-heaven kernel:        000011a8 c0166415 c1b72934 c1b72934 c0163768 ee7ccc38 f459fbf8 bf92e7b8
+Apr 11 15:42:09 great-sage-equal-to-heaven kernel:        f6c6a934 c0103b92 bfdaba18 c1b703f0 00000001 c1b81bfc c1b72934 bfdaba18
+Apr 11 15:42:09 great-sage-equal-to-heaven kernel: Call Trace:
+Apr 11 15:42:09 great-sage-equal-to-heaven kernel:  [<c0151731>] find_get_page+0x9/0x24
+Apr 11 15:42:09 great-sage-equal-to-heaven kernel:  [<c016f58f>] read_swap_cache_async+0x32/0x83Apr 11 15:42:09 great-sage-equal-to-heaven kernel:  [<c0166415>] do_swap_page+0x262/0x600
+Apr 11 15:42:09 great-sage-equal-to-heaven kernel:  [<c0163768>] pte_alloc_map+0xc6/0x1e6
+Apr 11 15:42:09 great-sage-equal-to-heaven kernel:  [<c0103b92>] common_interrupt+0x1a/0x20
+Apr 11 15:42:09 great-sage-equal-to-heaven kernel:  [<c01673f0>] handle_mm_fault+0x1da/0x31d
+Apr 11 15:42:09 great-sage-equal-to-heaven kernel:  [<c016488e>] __follow_page+0xa2/0x10d
+Apr 11 15:42:09 great-sage-equal-to-heaven kernel:  [<c0164a6f>] get_user_pages+0x145/0x6ee
+Apr 11 15:42:09 great-sage-equal-to-heaven kernel:  [<c0161f66>] kmap_high+0x52/0x44e
+Apr 11 15:42:09 great-sage-equal-to-heaven kernel:  [<c0103b92>] common_interrupt+0x1a/0x20
+Apr 11 15:42:09 great-sage-equal-to-heaven kernel:  [<f8cbb19d>] x_access_process_vm+0x111/0x1a5 [sysprof_module]
+Apr 11 15:42:10 great-sage-equal-to-heaven kernel:  [<f8cbb24a>] read_user_space+0x19/0x1d [sysprof_module]
+Apr 11 15:42:10 great-sage-equal-to-heaven kernel:  [<f8cbb293>] read_frame+0x35/0x51 [sysprof_module]
+Apr 11 15:42:10 great-sage-equal-to-heaven kernel:  [<f8cbb33a>] generate_stack_trace+0x8b/0xb4
+Apr 11 15:42:10 great-sage-equal-to-heaven kernel:  [<f8cbb3a2>] do_generate+0x3f/0xa0 [sysprof_module]
+Apr 11 15:42:10 great-sage-equal-to-heaven kernel:  [<c0138d7a>] worker_thread+0x1b0/0x450
+Apr 11 15:42:10 great-sage-equal-to-heaven kernel:  [<c0379ccd>] schedule+0x30d/0x780
+Apr 11 15:42:10 great-sage-equal-to-heaven kernel:  [<c011bdb6>] __wake_up_common+0x39/0x59
+Apr 11 15:42:10 great-sage-equal-to-heaven kernel:  [<f8cbb363>] do_generate+0x0/0xa0 [sysprof_module]
+Apr 11 15:42:10 great-sage-equal-to-heaven kernel:  [<c011bd71>] default_wake_function+0x0/0xc
+Apr 11 15:42:10 great-sage-equal-to-heaven kernel:  [<c0138bca>] worker_thread+0x0/0x450
+Apr 11 15:42:10 great-sage-equal-to-heaven kernel:  [<c013f3cb>] kthread+0x87/0x8b
+Apr 11 15:42:10 great-sage-equal-to-heaven kernel:  [<c013f344>] kthread+0x0/0x8b
+Apr 11 15:42:10 great-sage-equal-to-heaven kernel:  [<c0101275>] kernel_thread_helper+0x5/0xb
+Apr 11 15:42:10 great-sage-equal-to-heaven kernel: Code: e0 8b 00 8b 50 74 8b 1d c4 55 3d c0 39
+da 0f 84 9b 01 00 00 a1 60 fc 3c c0 39 05 30 ec 48 c0 78 05 83 c4 20 5b c3 a1 60 fc 3c c0 <3b> 82 b8 01 00 00 78 ee 81 3d ac 55 3d c0 3c 4b 24 1d 0f 85 78
+
