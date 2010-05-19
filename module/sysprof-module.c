@@ -2,7 +2,7 @@
 
 /* Sysprof -- Sampling, systemwide CPU profiler
  * Copyright 2004, Red Hat, Inc.
- * Copyright 2004, 2005, Soeren Sandmann
+ * Copyright 2004, 2005, 2006, 2007, 2008, Soeren Sandmann
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -67,16 +67,27 @@ DECLARE_WAIT_QUEUE_HEAD (wait_for_trace);
 DECLARE_WAIT_QUEUE_HEAD (wait_for_exit);
 
 /* Macro the names of the registers that are used on each architecture */
-#if defined(CONFIG_X86_64)
-# define REG_FRAME_PTR rbp
-# define REG_INS_PTR rip
-# define REG_STACK_PTR rsp
-#elif defined(CONFIG_X86)
-# define REG_FRAME_PTR ebp
-# define REG_INS_PTR eip
-# define REG_STACK_PTR esp
+#if !defined(CONFIG_X86_64) && !defined(CONFIG_X86)
+#       error Sysprof only supports the i386 and x86-64 architectures
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION (2,6,25)
+#       define REG_FRAME_PTR bp
+#       define REG_INS_PTR ip
+#       define REG_STACK_PTR sp
+#       define REG_STACK_PTR0 sp0
 #else
-# error Sysprof only supports the i386 and x86-64 architectures
+#       if defined(CONFIG_X86_64)
+#               define REG_FRAME_PTR rbp
+#               define REG_INS_PTR rip
+#               define REG_STACK_PTR rsp
+#               define REG_STACK_PTR0 rsp0
+#       else
+#               define REG_FRAME_PTR ebp
+#               define REG_INS_PTR eip
+#               define REG_STACK_PTR esp
+#               define REG_STACK_PTR0 esp0
+#       endif
 #endif
 
 typedef struct userspace_reader userspace_reader;
@@ -111,8 +122,8 @@ read_frame (void *frame_pointer, StackFrame *frame)
 
 	if (__copy_from_user_inatomic (
 		    frame, frame_pointer, sizeof (StackFrame)))
-		return 2;
-
+		return 1;
+	
 	return 0;
 }
 
@@ -125,8 +136,12 @@ timer_notify (struct pt_regs *regs)
 	int i;
 	int is_user;
 	static atomic_t in_timer_notify = ATOMIC_INIT(1);
+	int n;
 
-	if ((++get_cpu_var(n_samples) % INTERVAL) != 0)
+	n = ++get_cpu_var(n_samples);
+	put_cpu_var(n_samples);
+
+	if (n % INTERVAL != 0)
 		return 0;
 
 	/* 0: locked, 1: unlocked */
@@ -236,7 +251,7 @@ init_module(void)
 	static struct file_operations fops;
 
 	trace_proc_file =
-		create_proc_entry ("sysprof-trace", S_IFREG | S_IRUGO, &proc_root);
+		create_proc_entry ("sysprof-trace", S_IFREG | S_IRUGO, NULL);
 	
 	if (!trace_proc_file)
 		return 1;
@@ -260,7 +275,7 @@ cleanup_module(void)
 {
 	unregister_timer_hook (timer_notify);
 	
-	remove_proc_entry("sysprof-trace", &proc_root);
+	remove_proc_entry("sysprof-trace", NULL);
 
 	printk(KERN_ALERT "sysprof: unloaded\n");
 }

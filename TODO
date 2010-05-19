@@ -1,14 +1,23 @@
 Before 1.0:
 
-   - Update version numbers in source
+   - Update version numbers and year in source
+     - configure.ac
+     - sysprof.c about box
+     - any file that changed
+
+   - make announce-1.0.11 file
+     - search-and-replace 1.0.(x-1) 1.0.x
+     - Add notes in sysprof-1.0.x section
+
+   - git add announce-1.0.x
 
    - Make tarball
 
    - Check that tarball works
 
-   - cvs commit
+   - git commit
 
-   - cvs tag sysprof-1-0
+   - git tag -a sysprof-1.0.11 -m "Sysprof 1.0.11"
 
    - Update website
 
