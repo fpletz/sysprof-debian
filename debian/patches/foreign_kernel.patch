@@ -1,14 +1,8 @@
-#! /bin/sh /usr/share/dpatch/dpatch-run
-## foreign_kernel.dpatch by Samuel Mimram <smimram@debian.org>
-##
-## All lines beginning with `## DP:' are a description of the patch.
-## DP: Use provided kernel version.
-
-@DPATCH@
-diff -urNad sysprof-1.0.1~/module/Makefile sysprof-1.0.1/module/Makefile
---- sysprof-1.0.1~/module/Makefile	2005-12-19 21:49:27.000000000 +0100
-+++ sysprof-1.0.1/module/Makefile	2006-02-12 17:34:15.000000000 +0100
-@@ -10,7 +10,8 @@
+Author: Samuel Mimram <smimram@debian.org>
+Description: Use provided kernel version.
+--- a/module/Makefile
++++ b/module/Makefile
+@@ -9,7 +9,8 @@
  endif
  
  MODULE    := sysprof-module
@@ -18,7 +12,7 @@ diff -urNad sysprof-1.0.1~/module/Makefile sysprof-1.0.1/module/Makefile
  INCLUDE   := -isystem $(KDIR)/include
  MODCFLAGS := -DMODULE -D__KERNEL__ -Wall ${INCLUDE}
  
-@@ -22,7 +23,7 @@
+@@ -21,7 +22,7 @@
  	modprobe -r sysprof-module
  	modprobe sysprof-module
  
