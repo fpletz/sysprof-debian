@@ -87,7 +87,7 @@ override_dh_install:
 		install -m 0644 $$f debian/tmp/modules/sysprof-module/debian/; \
 	done
 	cp module/* debian/tmp/modules/sysprof-module/
-	cd debian/tmp/; tar jcvf ../sysprof-module-source/usr/src/sysprof-module.tar.bz2 modules
+	cd debian/tmp/; tar jcvf ../sysprof-module-source/usr/src/sysprof-module.tar.bz2 modules; cd ../../
 	rm -rf debian/tmp/modules
 
 # install: build
