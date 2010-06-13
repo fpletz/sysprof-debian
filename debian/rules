@@ -70,6 +70,27 @@
 # 	rm -f config.log
 # 	dh_clean
 # 
+override_dh_install:
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+
+	# Install sysprof.
+	make install DESTDIR=$(SYSPROFDIR)
+	cp debian/sysprof.xpm $(SYSPROFDIR)/usr/share/pixmaps
+	mkdir -p $(SYSPROFDIR)/usr/share/applications
+	cp debian/sysprof.desktop $(SYSPROFDIR)/usr/share/applications
+
+	# Install the sources of the kernel module.
+	install -D -m 0755 debian/rules.modules debian/tmp/modules/sysprof-module/debian/rules
+	for f in debian/*.modules.in debian/control debian/compat debian/copyright debian/changelog; do \
+		install -m 0644 $$f debian/tmp/modules/sysprof-module/debian/; \
+	done
+	cp module/* debian/tmp/modules/sysprof-module/
+	cd debian/tmp/; tar jcvf ../sysprof-module-source/usr/src/sysprof-module.tar.bz2 modules
+	rm -rf debian/tmp/modules
+
 # install: build
 # 	dh_testdir
 # 	dh_testroot
