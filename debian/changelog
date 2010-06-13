@@ -5,8 +5,9 @@ sysprof (1.0.12-2) unstable; urgency=low
   * Add homepage and Vcs details 
   * Add misc:Depends to make it lintian clean 
   * Update module version to current package version 
+  * Drop autotools-dev and automake1.9 from build depends 
 
- -- Ritesh Raj Sarraf <rrs@debian.org>  Sun, 13 Jun 2010 15:00:38 +0530
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Sun, 13 Jun 2010 15:09:31 +0530
 
 sysprof (1.0.12-1) unstable; urgency=low
 
