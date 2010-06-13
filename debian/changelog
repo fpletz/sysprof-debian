@@ -3,8 +3,9 @@ sysprof (1.0.12-2) unstable; urgency=low
   * Take maintenance (Closes: #445205)
   * Update Standards Version to 3.8.4 (No changes required) 
   * Add homepage and Vcs details 
+  * Add misc:Depends to make it lintian clean 
 
- -- Ritesh Raj Sarraf <rrs@debian.org>  Sun, 13 Jun 2010 13:45:55 +0530
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Sun, 13 Jun 2010 13:52:45 +0530
 
 sysprof (1.0.12-1) unstable; urgency=low
 
