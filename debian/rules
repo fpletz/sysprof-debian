@@ -55,5 +55,10 @@ override_dh_install:
 	cp module/* debian/tmp/modules/sysprof-module/
 	cd debian/tmp/; tar jcvf ../sysprof-module-source/usr/src/sysprof-module.tar.bz2 modules; cd ../../
 	rm -rf debian/tmp/modules
+	
+	# Install the override
+	mkdir -p debian/sysprof-module-source/usr/share/lintian/overrides
+	cp debian/sysprof-module-source.overrides \
+		debian/sysprof-module-source/usr/share/lintian/overrides/sysprof-module-source
 
 # .PHONY: build clean binary-indep binary-arch binary install
