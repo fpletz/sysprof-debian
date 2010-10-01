@@ -2,6 +2,11 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+# DKMS package
+pdkms=sysprof-module-dkms
+
+DEB_UPSTREAM_VERSION=$(shell dpkg-parsechangelog | sed -rne 's,^Version: ([^-]+).*,\1,p')
+
 # This has to be exported to make some magic below work.
 export DH_OPTIONS
 export KSRC
@@ -53,6 +58,16 @@ override_dh_install:
 		install -m 0644 $$f debian/tmp/modules/sysprof-module/debian/; \
 	done
 	cp module/* debian/tmp/modules/sysprof-module/
+
+        # For DKMS
+	# Create the directories to install the source into
+	dh_installdirs -p$(pdkms)  usr/src/$(PACKAGE)-$(DEB_UPSTREAM_VERSION)
+	dh_installdirs -p$(pdkms)  usr/src/$(PACKAGE)-$(DEB_UPSTREAM_VERSION)/debian
+	install -D -m 0755 debian/rules.modules debian/$(pdkms)/tmp/modules/$(PACKAGE)-$(DEB_UPSTREAM_VERSION)/debian/rules
+	for f in debian/*.modules.in debian/control debian/compat debian/copyright debian/changelog; do \
+		install -m 0644 $$f debian/$(pdkms)/tmp/modules/$(PACKAGE)-$(DEB_UPSTREAM_VERSION)/debian/; \
+	done
+
 	cd debian/tmp/; tar jcvf ../sysprof-module-source/usr/src/sysprof-module.tar.bz2 modules; cd ../../
 	rm -rf debian/tmp/modules
 	
