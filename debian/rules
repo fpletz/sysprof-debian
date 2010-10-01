@@ -4,7 +4,7 @@ export DH_VERBOSE=1
 
 # DKMS package
 pdkms=sysprof-module-dkms
-PACKAGE=sysprof
+PACKAGE=sysprof-module
 
 DEB_UPSTREAM_VERSION=$(shell dpkg-parsechangelog | sed -rne 's,^Version: ([^-]+).*,\1,p')
 
