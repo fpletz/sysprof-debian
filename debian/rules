@@ -70,6 +70,11 @@ override_dh_install:
 	done
 	cp module/* debian/$(pdkms)/usr/src/$(PACKAGE)-$(DEB_UPSTREAM_VERSION)/
 
+	# Prepare dkms.conf from the dkms.conf.in template
+	sed "s/__VERSION__/$(DEB_UPSTREAM_VERSION)/g" debian/dkms.conf.in > debian/$(pdkms)/usr/src/$(PACKAGE)-$(DEB_UPSTREAM_VERSION)/dkms.conf
+
+
+
 	cd debian/tmp/; tar jcvf ../sysprof-module-source/usr/src/sysprof-module.tar.bz2 modules; cd ../../
 	rm -rf debian/tmp/modules
 	
