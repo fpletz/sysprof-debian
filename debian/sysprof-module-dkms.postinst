@@ -2,8 +2,8 @@
 
 set -e
 
-package=sysprof-dkms
-name=sysprof
+package=sysprof-module-dkms
+name=sysprof-module
 
 version=`dpkg-query -W -f='${Version}' "$package" \
         |rev|cut -d- -f2-|rev|cut -d':' -f2|tr -d "\n"`
