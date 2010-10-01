@@ -11,7 +11,7 @@ Vcs-Browser: http://git.debian.org/?p=collab-maint/sysprof.git
 Package: sysprof
 Architecture: i386 amd64
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Recommends: sysprof-module-source || sysprof-module-dkms
+Recommends: sysprof-module-source, sysprof-module-dkms
 Description: A system-wide Linux profiler
  Sysprof is a sampling CPU profiler that uses a Linux kernel module to profile
  the entire system, not just a single application. Sysprof handles shared
