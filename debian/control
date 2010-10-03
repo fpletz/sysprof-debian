@@ -44,7 +44,7 @@ Description: Source for the sysprof module
 Package: sysprof-module-dkms
 Architecture: all
 Depends: debhelper (>= 4.1.0), build-essential, make, dkms (>= 1.95), bzip2, ${misc:Depends}
-Description: Source for the sysprof module
+Description: Source for the sysprof module - DKMS version
  Sysprof is a sampling CPU profiler that uses a Linux kernel module to profile
  the entire system, not just a single application. Sysprof handles shared
  libraries and applications do not need to be recompiled. In fact they don't
