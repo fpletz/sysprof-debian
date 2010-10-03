@@ -64,7 +64,7 @@ override_dh_install:
 	# Create the directories to install the source into
 	dh_installdirs -p$(pdkms)  usr/src/$(PACKAGE)-$(DEB_UPSTREAM_VERSION)
 	dh_installdirs -p$(pdkms)  usr/src/$(PACKAGE)-$(DEB_UPSTREAM_VERSION)/debian
-	install -D -m 0755 debian/rules.modules debian/$(pdkms)/tmp/modules/$(PACKAGE)-$(DEB_UPSTREAM_VERSION)/debian/rules
+	install -D -m 0755 debian/rules.modules debian/$(pdkms)/usr/src/$(PACKAGE)-$(DEB_UPSTREAM_VERSION)/debian/rules
 	for f in debian/*.modules.in debian/control debian/compat debian/copyright debian/changelog; do \
 		install -m 0644 $$f debian/$(pdkms)/usr/src/$(PACKAGE)-$(DEB_UPSTREAM_VERSION)/debian/; \
 	done
