@@ -1,8 +1,9 @@
 sysprof (1.0.12-3) UNRELEASED; urgency=low
 
   * DKMS-ification of the package's kernel module 
+    + Add new package sysprof-module-dkms 
 
- -- Ritesh Raj Sarraf <rrs@debian.org>  Sun, 03 Oct 2010 17:30:20 +0530
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Sun, 03 Oct 2010 17:49:11 +0530
 
 sysprof (1.0.12-2) unstable; urgency=low
 
