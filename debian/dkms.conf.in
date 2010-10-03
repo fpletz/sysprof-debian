@@ -4,4 +4,4 @@ MAKE[0]="make -C ${kernel_source_dir} M=${dkms_tree}/${PACKAGE_NAME}/${PACKAGE_V
 CLEAN="make -C ${kernel_source_dir} M=${dkms_tree}/${PACKAGE_NAME}/${PACKAGE_VERSION}/build clean"
 AUTOINSTALL=yes
 BUILT_MODULE_NAME[0]="sysprof-module"
-DEST_MODULE_LOCATION[0]="/kernel/lib/"
+DEST_MODULE_LOCATION[0]="/updates"
