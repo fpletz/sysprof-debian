@@ -1,3 +1,9 @@
+sysprof (1.0.12-4) unstable; urgency=low
+
+  * Upload to unstable 
+
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Thu, 10 Feb 2011 20:19:07 +0530
+
 sysprof (1.0.12-3) experimental; urgency=low
 
   * DKMS-ification of the package's kernel module 
