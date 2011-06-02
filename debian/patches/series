@@ -1,5 +1,2 @@
 explicit_library_link.patch
-foreign_kernel.patch
-package_version.patch
 static_libbfd.patch
-better_help_for_missing_module.patch

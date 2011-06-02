@@ -11,46 +11,15 @@ Vcs-Browser: http://git.debian.org/?p=collab-maint/sysprof.git
 Package: sysprof
 Architecture: i386 amd64
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Recommends: sysprof-module-source, sysprof-module-dkms
 Description: system-wide Linux profiler
- Sysprof is a sampling CPU profiler that uses a Linux kernel module to profile
- the entire system, not just a single application. Sysprof handles shared
- libraries and applications do not need to be recompiled. In fact they don't
- even have to be restarted.
+ Sysprof is a sampling CPU profiler that uses a ptrace in Linux kernel to
+ profile the entire system, not just a single application. Sysprof handles
+ shared libraries and applications do not need to be recompiled. In fact they
+ don't even have to be restarted.
  .
  It has the following features:
   - profiles all running processes, not just a single application
   - has a simple graphical interface
   - shows the time spent in each branch of the call tree
   - profiles can be loaded and saved
- .
- You need the sysprof kernel module (provided in sysprof-module-source) to use
- sysprof.
 
-Package: sysprof-module-source
-Architecture: all
-Depends: debhelper (>= 4.1.0), build-essential, module-assistant, bzip2, ${misc:Depends}
-Description: Source for the sysprof module
- Sysprof is a sampling CPU profiler that uses a Linux kernel module to profile
- the entire system, not just a single application. Sysprof handles shared
- libraries and applications do not need to be recompiled. In fact they don't
- even have to be restarted.
- .
- This package contains the source for the sysprof's kernel module.
- .
- You need a Linux kernel version 2.6.11 or newer on an i386 or amd64
- processor.
-
-Package: sysprof-module-dkms
-Architecture: all
-Depends: debhelper (>= 4.1.0), build-essential, make, dkms (>= 1.95), bzip2, ${misc:Depends}
-Description: Source for the sysprof module - DKMS version
- Sysprof is a sampling CPU profiler that uses a Linux kernel module to profile
- the entire system, not just a single application. Sysprof handles shared
- libraries and applications do not need to be recompiled. In fact they don't
- even have to be restarted.
- .
- This package contains the dkms source for the sysprof's kernel module.
- .
- You need a Linux kernel version 2.6.11 or newer on an i386 or amd64
- processor.
