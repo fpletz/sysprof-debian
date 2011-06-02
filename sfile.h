@@ -17,11 +17,29 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-typedef struct SFormat SFormat;
+#include "sformat.h"
+
 typedef struct SFileInput SFileInput;
 typedef struct SFileOutput SFileOutput;
-typedef guint SType;
 
+
+#if 0
+Serializer *serializer_new (const char *version);
+void serializer_set_format (Serializer *serializer,
+			    SerializerFormat *format);
+SerializerFormat *serializer_make_list (Serializer *serializer,
+					const char *name,
+					SerializerFormat *contents);
+SerializerFormat *serializer_make_record (Serializer *serializer,
+					  const char *name,
+					  SerializerFormat *contents1,
+					  ...);
+SerializerFormat *serializer_make_integer (Serializer *serialiser,
+					   const char *name);
+SerializerFormat *serializer_make_pointer (Serializer *serialiser,
+					   const char *name,
+					   SerializerFormat *target_type);
+#endif
 
 /* A possibly better API/naming scheme
  *
@@ -42,6 +60,11 @@ typedef guint SType;
  *  For formats consider:
  *
  *   Format *format_new (void);
+ *   void format_free (void);
+ *   Content *format_create_record (Format *format, Content *c1, ...);
+ *   Content *format_create_list   (Format *format, Content *t);
+ *   Content *format_create_pointer  (Format *format, Content *pointer_type);
+ *   
  *   void format_set_record (Format *f, Content *r);
  *   Content *new_record (Content *c1, ...);
  *
@@ -55,27 +78,30 @@ typedef guint SType;
  * enums, optionals, selections, empties
  *
  *
+ * Other things:
+ *
+ *	"selections" - when several different types are possible - would need lambda transitions in and out
+ *
+ *      ability to allow 'ignored' elements that are simply skipped at parse time. This could become important
+ *      for future-proofing files.
+ *
+ * unions maybe?
+ *
+ *
+ *
+ *
  *==============================================
  * Also think about versioning - apps will want to be able to read and write
  * different versions of the format, and they want to be able to sniff the
  * format + version
  *
+ * The version should be part of the format. There should be a
+ * const char *sfile_sniff (const filename);
+ * that will return NULL (+ error) if the file can't be parsed
+ *
  */
 
 /* - Describing Types - */
-SFormat *sformat_new         (gpointer    f);
-gpointer sformat_new_record  (const char *name,
-			      SType      *type,
-			      gpointer    content,
-			      ...);
-gpointer sformat_new_list    (const char *name,
-			      SType      *type,
-			      gpointer    content);
-gpointer sformat_new_pointer (const char *name,
-			      SType      *target_type);
-gpointer sformat_new_integer (const char *name);
-gpointer sformat_new_string  (const char *name);
-void     sformat_free        (SFormat    *format);
 
 
 /* - Reading - */
@@ -140,4 +166,4 @@ gboolean sfile_output_save      (SFileOutput       *sfile,
 				 const char  *filename,
 				 GError     **err);
 
-void sfile_output_free (SFileOutput *sfile);
+void     sfile_output_free (SFileOutput *sfile);

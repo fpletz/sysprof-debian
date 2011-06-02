@@ -17,21 +17,29 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef SYSPROF_MODULE_H
-#define SYSPROF_MODULE_H
+#include "profile.h"
 
-typedef struct SysprofStackTrace SysprofStackTrace;
+typedef struct Collector Collector;
 
-#define SYSPROF_MAX_ADDRESSES 512
+typedef void (* CollectorFunc) (gboolean first_sample,
+				gpointer data);
 
-struct SysprofStackTrace
+#define COLLECTOR_ERROR collector_error_quark ()
+
+GQuark collector_error_quark (void);
+
+typedef enum
 {
-    int	pid;		/* -1 if in kernel */
-    int truncated;
-    int n_addresses;	/* note: this can be 1 if the process was compiled
-			 * with -fomit-frame-pointer or is otherwise weird
-			 */
-    void *addresses[SYSPROF_MAX_ADDRESSES];
-};
+    COLLECTOR_ERROR_FAILED
+} CollectorError;
 
-#endif
+/* callback is called whenever a new sample arrives */
+Collector *collector_new            (gboolean        use_hw_counters,
+				     CollectorFunc   callback,
+				     gpointer        data);
+gboolean   collector_start          (Collector      *collector,
+				     GError        **err);
+void       collector_stop           (Collector      *collector);
+void       collector_reset          (Collector      *collector);
+int        collector_get_n_samples  (Collector      *collector);
+Profile *  collector_create_profile (Collector      *collector);
