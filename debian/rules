@@ -21,6 +21,7 @@ else
 endif
 
 CFLAGS = -Wall -g
+LDFLAGS = -Wl,--as-needed
 
 ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
 	CFLAGS += -O0
