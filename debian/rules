@@ -31,18 +31,3 @@ endif
 %:
 	dh  $@
 
-override_dh_install:
-	dh_testdir
-	dh_testroot
-	dh_prep
-	dh_installdirs
-
-	# Install sysprof.
-	make install DESTDIR=$(SYSPROFDIR)
-	cp debian/sysprof.xpm $(SYSPROFDIR)/usr/share/pixmaps
-	mkdir -p $(SYSPROFDIR)/usr/share/applications
-	cp debian/sysprof.desktop $(SYSPROFDIR)/usr/share/applications
-
-	dh_installman debian/sysprof.1
-
-# .PHONY: build clean binary-indep binary-arch binary install
