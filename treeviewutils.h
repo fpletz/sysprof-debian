@@ -22,14 +22,6 @@
 
 #include <gtk/gtk.h>
 
-void column_set_sort_id       (GtkTreeViewColumn *column,
-			       int                column_id);
-void tree_view_unset_sort_ids (GtkTreeView       *tree_view);
-void tree_view_set_sort_ids   (GtkTreeView       *tree_view);
-
-int list_iter_get_index (GtkTreeModel *model,
-			 GtkTreeIter  *iter);
-
 GtkTreeViewColumn *add_plain_text_column    (GtkTreeView *view,
 					     const char  *title,
 					     gint         model_column);
@@ -40,6 +32,24 @@ GtkTreeViewColumn *add_double_format_column (GtkTreeView *view,
 GtkTreeViewColumn *add_pointer_column       (GtkTreeView *view,
 					     const char  *title,
 					     int          model_column);
-gpointer           save_sort_state          (GtkTreeView *view);
-void               restore_sort_state       (GtkTreeView *view,
-					     gpointer     state);
+void		   tree_view_set_model_with_default_sort (GtkTreeView *view,
+							  GtkTreeModel *model,
+							  int model_column,
+							  GtkSortType default_sort);
+void		   tree_view_set_sort_column (GtkTreeView *view,
+					      int          model_column,
+					      int          sort_type);
+
+typedef void (* VisibleCallback) (GtkTreeView  *view,
+				  GtkTreePath  *path,
+				  GtkTreeIter  *iter,
+				  gpointer      data);
+void tree_view_foreach_visible (GtkTreeView *view,
+				VisibleCallback callback,
+				gpointer data);
+
+
+
+void
+set_error_va (GError **err, gint domain, gint code,
+	      const char *format, va_list args);

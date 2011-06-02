@@ -25,28 +25,22 @@
 #define BIN_FILE_H
 
 #include <glib.h>
+#include <sys/types.h>
 
-typedef struct BinFile BinFile;
-typedef struct Symbol Symbol;
+typedef struct bin_file_t bin_file_t;
+typedef struct bin_symbol_t bin_symbol_t;
 
 /* Binary File */
 
-BinFile *     bin_file_new           (const char *filename);
-void          bin_file_free          (BinFile    *bin_file);
-const Symbol *bin_file_lookup_symbol (BinFile    *bin_file,
-				      gulong      address);
-
-/* Symbol */
-struct Symbol
-{
-    char *	name;
-    gulong	address;
-};
-
-Symbol * symbol_copy  (const Symbol *orig);
-gboolean symbol_equal (const void *syma,
-		       const void *symb);
-guint    symbol_hash  (const void *sym);
-void     symbol_free  (Symbol       *symbol);
+bin_file_t *        bin_file_new           (const char      *filename);
+void             bin_file_free          (bin_file_t         *bin_file);
+const bin_symbol_t *bin_file_lookup_symbol (bin_file_t         *bin_file,
+					 gulong           address);
+gboolean         bin_file_check_inode   (bin_file_t         *bin_file,
+					 ino_t		  inode);
+const char *     bin_symbol_get_name    (bin_file_t         *bin_file,
+					 const bin_symbol_t *symbol);
+gulong		 bin_symbol_get_address (bin_file_t         *bin_file,
+					 const bin_symbol_t *symbol);
 
 #endif

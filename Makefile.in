@@ -14,6 +14,9 @@
 
 @SET_MAKE@
 
+#SUBDIRS = $(MODULE_SUBDIR)
+#DIST_SUBDIRS = module
+
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
 VPATH = @srcdir@
@@ -35,6 +38,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
+@BUILD_GUI_TRUE@am__append_1 = sysprof 
 ACLOCAL = @ACLOCAL@
 AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
@@ -43,19 +47,23 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
+BUILD_GUI_FALSE = @BUILD_GUI_FALSE@
+BUILD_GUI_TRUE = @BUILD_GUI_TRUE@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
+CORE_DEP_CFLAGS = @CORE_DEP_CFLAGS@
+CORE_DEP_LIBS = @CORE_DEP_LIBS@
 CPPFLAGS = @CPPFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
-DEP_CFLAGS = @DEP_CFLAGS@
-DEP_LIBS = @DEP_LIBS@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EXEEXT = @EXEEXT@
+GUI_DEP_CFLAGS = @GUI_DEP_CFLAGS@
+GUI_DEP_LIBS = @GUI_DEP_LIBS@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
@@ -111,95 +119,236 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-SUBDIRS = $(MODULE_SUBDIR)
-DIST_SUBDIRS = module
 
-bin_PROGRAMS = sysprof
-pkgdata_DATA = sysprof.glade sysprof-icon.png
+bin_PROGRAMS = sysprof-cli $(am__append_1)
 
-sysprof_SOURCES = \
-	binfile.h		\
-	binfile.c		\
-	process.h		\
-	process.c		\
-	profile.h		\
-	profile.c		\
-	sfile.h			\
-	sfile.c			\
-	stackstash.h		\
-	stackstash.c		\
-	module/sysprof-module.h	\
-	sysprof.c		\
-	treeviewutils.h		\
-	treeviewutils.c		\
-	watch.h			\
-	watch.c
-
-
-sysprof_LDADD = $(DEP_LIBS)
-
-INCLUDES = \
-	$(DEP_CFLAGS)				   \
-	-DDATADIR=\"$(pkgdatadir)\"		   \
-	-DPIXMAPDIR=\"$(datadir)/pixmaps\"
+SYSPROF_CORE = \
+	binfile.h				\
+	binfile.c				\
+	collector.c				\
+	collector.h				\
+	demangle.c				\
+	elfparser.c				\
+	elfparser.h				\
+	profile.h				\
+	profile.c				\
+	sfile.h					\
+	sfile.c					\
+	sformat.h				\
+	sformat.c				\
+	stackstash.h				\
+	stackstash.c				\
+	tracker.h				\
+	tracker.c				\
+	unwind.h				\
+	unwind.c				\
+	watch.h					\
+	watch.c					\
+						\
+	perf_counter.h				\
+	util.h
 
 
 
-#	memprof.desktop		
-#	memprof.spec.in
-EXTRA_DIST = \
-	sysprof.glade	  	\
-	sysprof-icon.png	\
-	module/sysprof-module.c \
-	module/sysprof-module.h	\
-	module/Makefile
+#	module/sysprof-module.h			
 
+#
+# GUI version
+#
+@BUILD_GUI_TRUE@sysprof_SOURCES = \
+@BUILD_GUI_TRUE@	$(SYSPROF_CORE)				\
+@BUILD_GUI_TRUE@	footreestore.c				\
+@BUILD_GUI_TRUE@	footreestore.h				\
+@BUILD_GUI_TRUE@	footreedatalist.h			\
+@BUILD_GUI_TRUE@	footreedatalist.c			\
+@BUILD_GUI_TRUE@	treeviewutils.h				\
+@BUILD_GUI_TRUE@	treeviewutils.c				\
+@BUILD_GUI_TRUE@	sysprof.c
+
+
+@BUILD_GUI_TRUE@sysprof_CPPFLAGS = \
+@BUILD_GUI_TRUE@	$(GUI_DEP_CFLAGS)			\
+@BUILD_GUI_TRUE@	-DDATADIR=\"$(pkgdatadir)\"		\
+@BUILD_GUI_TRUE@	-DPIXMAPDIR=\"$(pixmapsdir)\"
+
+
+@BUILD_GUI_TRUE@sysprof_LDADD = $(GUI_DEP_LIBS)
+
+udevdir = $(sysconfdir)/udev/rules.d
+dist_udev_DATA = 60-sysprof.rules
 
 pixmapsdir = $(datadir)/pixmaps
-pixmaps_DATA = sysprof-icon.png
+
+dist_pkgdata_DATA = sysprof.glade
+dist_pixmaps_DATA = sysprof-icon-16.png sysprof-icon-24.png sysprof-icon-32.png sysprof-icon-48.png
+
+
+#
+# Command line version
+#
+sysprof_cli_SOURCES = \
+	$(SYSPROF_CORE)				\
+	signal-handler.h			\
+	signal-handler.c			\
+	sysprof-cli.c
+
+
+sysprof_cli_CPPFLAGS = \
+	$(CORE_DEP_CFLAGS)
+
+
+sysprof_cli_LDADD = $(CORE_DEP_LIBS)
+
+#
+# Module stuff
+#  
+
+#EXTRA_DIST =					\
+#	module/sysprof-module.c			\
+#	module/sysprof-module.h			\
+#	module/Makefile
+
+#insert-module:
+#	/sbin/modprobe -r sysprof-module
+#	/sbin/modprobe sysprof-module
+
+# 
+# Test programs
+#
+noinst_PROGRAMS = testelf testunwind
+
+# testunwind
+testunwind_SOURCES = \
+	testunwind.c	\
+	demangle.c	\
+	elfparser.c	\
+	elfparser.h	\
+	unwind.c	\
+	unwind.h
+
+testunwind_CPPFLAGS = $(CORE_DEP_CFLAGS)
+testunwind_LDADD = $(CORE_DEP_LIBS)
+
+# testelf
+testelf_SOURCES = \
+	testelf.c	\
+	demangle.c	\
+	elfparser.c	\
+	elfparser.h
+
+
+testelf_CPPFLAGS = $(CORE_DEP_CFLAGS)
+testelf_LDADD = $(CORE_DEP_LIBS)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES =
-bin_PROGRAMS = sysprof$(EXEEXT)
-PROGRAMS = $(bin_PROGRAMS)
+@BUILD_GUI_TRUE@bin_PROGRAMS = sysprof-cli$(EXEEXT) sysprof$(EXEEXT)
+@BUILD_GUI_FALSE@bin_PROGRAMS = sysprof-cli$(EXEEXT)
+noinst_PROGRAMS = testelf$(EXEEXT) testunwind$(EXEEXT)
+PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
 
-am_sysprof_OBJECTS = binfile.$(OBJEXT) process.$(OBJEXT) \
-	profile.$(OBJEXT) sfile.$(OBJEXT) stackstash.$(OBJEXT) \
-	sysprof.$(OBJEXT) treeviewutils.$(OBJEXT) watch.$(OBJEXT)
+am__sysprof_SOURCES_DIST = binfile.h binfile.c collector.c collector.h \
+	demangle.c elfparser.c elfparser.h profile.h profile.c sfile.h \
+	sfile.c sformat.h sformat.c stackstash.h stackstash.c tracker.h \
+	tracker.c unwind.h unwind.c watch.h watch.c perf_counter.h \
+	util.h footreestore.c footreestore.h footreedatalist.h \
+	footreedatalist.c treeviewutils.h treeviewutils.c sysprof.c
+am__objects_1 = sysprof-binfile.$(OBJEXT) sysprof-collector.$(OBJEXT) \
+	sysprof-demangle.$(OBJEXT) sysprof-elfparser.$(OBJEXT) \
+	sysprof-profile.$(OBJEXT) sysprof-sfile.$(OBJEXT) \
+	sysprof-sformat.$(OBJEXT) sysprof-stackstash.$(OBJEXT) \
+	sysprof-tracker.$(OBJEXT) sysprof-unwind.$(OBJEXT) \
+	sysprof-watch.$(OBJEXT)
+@BUILD_GUI_TRUE@am_sysprof_OBJECTS = $(am__objects_1) \
+@BUILD_GUI_TRUE@	sysprof-footreestore.$(OBJEXT) \
+@BUILD_GUI_TRUE@	sysprof-footreedatalist.$(OBJEXT) \
+@BUILD_GUI_TRUE@	sysprof-treeviewutils.$(OBJEXT) \
+@BUILD_GUI_TRUE@	sysprof-sysprof.$(OBJEXT)
 sysprof_OBJECTS = $(am_sysprof_OBJECTS)
-sysprof_DEPENDENCIES =
+@BUILD_GUI_TRUE@sysprof_DEPENDENCIES =
+@BUILD_GUI_FALSE@sysprof_DEPENDENCIES =
 sysprof_LDFLAGS =
+am__objects_2 = sysprof_cli-binfile.$(OBJEXT) \
+	sysprof_cli-collector.$(OBJEXT) sysprof_cli-demangle.$(OBJEXT) \
+	sysprof_cli-elfparser.$(OBJEXT) sysprof_cli-profile.$(OBJEXT) \
+	sysprof_cli-sfile.$(OBJEXT) sysprof_cli-sformat.$(OBJEXT) \
+	sysprof_cli-stackstash.$(OBJEXT) sysprof_cli-tracker.$(OBJEXT) \
+	sysprof_cli-unwind.$(OBJEXT) sysprof_cli-watch.$(OBJEXT)
+am_sysprof_cli_OBJECTS = $(am__objects_2) \
+	sysprof_cli-signal-handler.$(OBJEXT) \
+	sysprof_cli-sysprof-cli.$(OBJEXT)
+sysprof_cli_OBJECTS = $(am_sysprof_cli_OBJECTS)
+sysprof_cli_DEPENDENCIES =
+sysprof_cli_LDFLAGS =
+am_testelf_OBJECTS = testelf-testelf.$(OBJEXT) \
+	testelf-demangle.$(OBJEXT) testelf-elfparser.$(OBJEXT)
+testelf_OBJECTS = $(am_testelf_OBJECTS)
+testelf_DEPENDENCIES =
+testelf_LDFLAGS =
+am_testunwind_OBJECTS = testunwind-testunwind.$(OBJEXT) \
+	testunwind-demangle.$(OBJEXT) testunwind-elfparser.$(OBJEXT) \
+	testunwind-unwind.$(OBJEXT)
+testunwind_OBJECTS = $(am_testunwind_OBJECTS)
+testunwind_DEPENDENCIES =
+testunwind_LDFLAGS =
 
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I.
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
-@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/binfile.Po ./$(DEPDIR)/process.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/profile.Po ./$(DEPDIR)/sfile.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/stackstash.Po ./$(DEPDIR)/sysprof.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/treeviewutils.Po ./$(DEPDIR)/watch.Po
+@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/sysprof-binfile.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof-collector.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof-demangle.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof-elfparser.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof-footreedatalist.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof-footreestore.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof-profile.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof-sfile.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof-sformat.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof-stackstash.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof-sysprof.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof-tracker.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof-treeviewutils.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof-unwind.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof-watch.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof_cli-binfile.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof_cli-collector.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof_cli-demangle.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof_cli-elfparser.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof_cli-profile.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof_cli-sfile.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof_cli-sformat.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof_cli-signal-handler.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof_cli-stackstash.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof_cli-sysprof-cli.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof_cli-tracker.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof_cli-unwind.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sysprof_cli-watch.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/testelf-demangle.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/testelf-elfparser.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/testelf-testelf.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/testunwind-demangle.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/testunwind-elfparser.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/testunwind-testunwind.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/testunwind-unwind.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-DIST_SOURCES = $(sysprof_SOURCES)
-DATA = $(pixmaps_DATA) $(pkgdata_DATA)
+DIST_SOURCES = $(am__sysprof_SOURCES_DIST) $(sysprof_cli_SOURCES) \
+	$(testelf_SOURCES) $(testunwind_SOURCES)
+DATA = $(dist_pixmaps_DATA) $(dist_pkgdata_DATA) $(dist_udev_DATA)
 
-
-RECURSIVE_TARGETS = info-recursive dvi-recursive pdf-recursive \
-	ps-recursive install-info-recursive uninstall-info-recursive \
-	all-recursive install-data-recursive install-exec-recursive \
-	installdirs-recursive install-recursive uninstall-recursive \
-	check-recursive installcheck-recursive
-DIST_COMMON = README $(srcdir)/Makefile.in $(srcdir)/configure AUTHORS \
-	COPYING ChangeLog INSTALL Makefile.am NEWS TODO aclocal.m4 \
-	compile config.h.in configure configure.ac depcomp install-sh \
-	missing mkinstalldirs
-SOURCES = $(sysprof_SOURCES)
+DIST_COMMON = README $(dist_pixmaps_DATA) $(dist_pkgdata_DATA) \
+	$(dist_udev_DATA) $(srcdir)/Makefile.in $(srcdir)/configure \
+	AUTHORS COPYING ChangeLog INSTALL Makefile.am NEWS TODO \
+	aclocal.m4 compile config.h.in configure configure.ac depcomp \
+	install-sh missing mkinstalldirs
+SOURCES = $(sysprof_SOURCES) $(sysprof_cli_SOURCES) $(testelf_SOURCES) $(testunwind_SOURCES)
 
 all: config.h
-	$(MAKE) $(AM_MAKEFLAGS) all-recursive
+	$(MAKE) $(AM_MAKEFLAGS) all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .o .obj
@@ -260,9 +409,21 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
+
+clean-noinstPROGRAMS:
+	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
 sysprof$(EXEEXT): $(sysprof_OBJECTS) $(sysprof_DEPENDENCIES) 
 	@rm -f sysprof$(EXEEXT)
 	$(LINK) $(sysprof_LDFLAGS) $(sysprof_OBJECTS) $(sysprof_LDADD) $(LIBS)
+sysprof-cli$(EXEEXT): $(sysprof_cli_OBJECTS) $(sysprof_cli_DEPENDENCIES) 
+	@rm -f sysprof-cli$(EXEEXT)
+	$(LINK) $(sysprof_cli_LDFLAGS) $(sysprof_cli_OBJECTS) $(sysprof_cli_LDADD) $(LIBS)
+testelf$(EXEEXT): $(testelf_OBJECTS) $(testelf_DEPENDENCIES) 
+	@rm -f testelf$(EXEEXT)
+	$(LINK) $(testelf_LDFLAGS) $(testelf_OBJECTS) $(testelf_LDADD) $(LIBS)
+testunwind$(EXEEXT): $(testunwind_OBJECTS) $(testunwind_DEPENDENCIES) 
+	@rm -f testunwind$(EXEEXT)
+	$(LINK) $(testunwind_LDFLAGS) $(testunwind_OBJECTS) $(testunwind_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT) core *.core
@@ -270,14 +431,41 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/binfile.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/process.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/profile.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sfile.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stackstash.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/treeviewutils.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/watch.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof-binfile.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof-collector.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof-demangle.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof-elfparser.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof-footreedatalist.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof-footreestore.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof-profile.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof-sfile.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof-sformat.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof-stackstash.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof-sysprof.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof-tracker.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof-treeviewutils.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof-unwind.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof-watch.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof_cli-binfile.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof_cli-collector.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof_cli-demangle.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof_cli-elfparser.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof_cli-profile.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof_cli-sfile.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof_cli-sformat.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof_cli-signal-handler.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof_cli-stackstash.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof_cli-sysprof-cli.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof_cli-tracker.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof_cli-unwind.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sysprof_cli-watch.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testelf-demangle.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testelf-elfparser.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testelf-testelf.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testunwind-demangle.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testunwind-elfparser.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testunwind-testunwind.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testunwind-unwind.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" \
@@ -300,101 +488,830 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `if test -f '$<'; then $(CYGPATH_W) '$<'; else $(CYGPATH_W) '$(srcdir)/$<'; fi`
+
+sysprof-binfile.o: binfile.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-binfile.o -MD -MP -MF "$(DEPDIR)/sysprof-binfile.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-binfile.o `test -f 'binfile.c' || echo '$(srcdir)/'`binfile.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-binfile.Tpo" "$(DEPDIR)/sysprof-binfile.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-binfile.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='binfile.c' object='sysprof-binfile.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-binfile.Po' tmpdepfile='$(DEPDIR)/sysprof-binfile.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-binfile.o `test -f 'binfile.c' || echo '$(srcdir)/'`binfile.c
+
+sysprof-binfile.obj: binfile.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-binfile.obj -MD -MP -MF "$(DEPDIR)/sysprof-binfile.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-binfile.obj `if test -f 'binfile.c'; then $(CYGPATH_W) 'binfile.c'; else $(CYGPATH_W) '$(srcdir)/binfile.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-binfile.Tpo" "$(DEPDIR)/sysprof-binfile.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-binfile.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='binfile.c' object='sysprof-binfile.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-binfile.Po' tmpdepfile='$(DEPDIR)/sysprof-binfile.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-binfile.obj `if test -f 'binfile.c'; then $(CYGPATH_W) 'binfile.c'; else $(CYGPATH_W) '$(srcdir)/binfile.c'; fi`
+
+sysprof-collector.o: collector.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-collector.o -MD -MP -MF "$(DEPDIR)/sysprof-collector.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-collector.o `test -f 'collector.c' || echo '$(srcdir)/'`collector.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-collector.Tpo" "$(DEPDIR)/sysprof-collector.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-collector.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='collector.c' object='sysprof-collector.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-collector.Po' tmpdepfile='$(DEPDIR)/sysprof-collector.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-collector.o `test -f 'collector.c' || echo '$(srcdir)/'`collector.c
+
+sysprof-collector.obj: collector.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-collector.obj -MD -MP -MF "$(DEPDIR)/sysprof-collector.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-collector.obj `if test -f 'collector.c'; then $(CYGPATH_W) 'collector.c'; else $(CYGPATH_W) '$(srcdir)/collector.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-collector.Tpo" "$(DEPDIR)/sysprof-collector.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-collector.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='collector.c' object='sysprof-collector.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-collector.Po' tmpdepfile='$(DEPDIR)/sysprof-collector.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-collector.obj `if test -f 'collector.c'; then $(CYGPATH_W) 'collector.c'; else $(CYGPATH_W) '$(srcdir)/collector.c'; fi`
+
+sysprof-demangle.o: demangle.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-demangle.o -MD -MP -MF "$(DEPDIR)/sysprof-demangle.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-demangle.o `test -f 'demangle.c' || echo '$(srcdir)/'`demangle.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-demangle.Tpo" "$(DEPDIR)/sysprof-demangle.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-demangle.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='demangle.c' object='sysprof-demangle.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-demangle.Po' tmpdepfile='$(DEPDIR)/sysprof-demangle.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-demangle.o `test -f 'demangle.c' || echo '$(srcdir)/'`demangle.c
+
+sysprof-demangle.obj: demangle.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-demangle.obj -MD -MP -MF "$(DEPDIR)/sysprof-demangle.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-demangle.obj `if test -f 'demangle.c'; then $(CYGPATH_W) 'demangle.c'; else $(CYGPATH_W) '$(srcdir)/demangle.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-demangle.Tpo" "$(DEPDIR)/sysprof-demangle.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-demangle.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='demangle.c' object='sysprof-demangle.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-demangle.Po' tmpdepfile='$(DEPDIR)/sysprof-demangle.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-demangle.obj `if test -f 'demangle.c'; then $(CYGPATH_W) 'demangle.c'; else $(CYGPATH_W) '$(srcdir)/demangle.c'; fi`
+
+sysprof-elfparser.o: elfparser.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-elfparser.o -MD -MP -MF "$(DEPDIR)/sysprof-elfparser.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-elfparser.o `test -f 'elfparser.c' || echo '$(srcdir)/'`elfparser.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-elfparser.Tpo" "$(DEPDIR)/sysprof-elfparser.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-elfparser.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='elfparser.c' object='sysprof-elfparser.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-elfparser.Po' tmpdepfile='$(DEPDIR)/sysprof-elfparser.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-elfparser.o `test -f 'elfparser.c' || echo '$(srcdir)/'`elfparser.c
+
+sysprof-elfparser.obj: elfparser.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-elfparser.obj -MD -MP -MF "$(DEPDIR)/sysprof-elfparser.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-elfparser.obj `if test -f 'elfparser.c'; then $(CYGPATH_W) 'elfparser.c'; else $(CYGPATH_W) '$(srcdir)/elfparser.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-elfparser.Tpo" "$(DEPDIR)/sysprof-elfparser.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-elfparser.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='elfparser.c' object='sysprof-elfparser.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-elfparser.Po' tmpdepfile='$(DEPDIR)/sysprof-elfparser.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-elfparser.obj `if test -f 'elfparser.c'; then $(CYGPATH_W) 'elfparser.c'; else $(CYGPATH_W) '$(srcdir)/elfparser.c'; fi`
+
+sysprof-profile.o: profile.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-profile.o -MD -MP -MF "$(DEPDIR)/sysprof-profile.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-profile.o `test -f 'profile.c' || echo '$(srcdir)/'`profile.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-profile.Tpo" "$(DEPDIR)/sysprof-profile.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-profile.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='profile.c' object='sysprof-profile.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-profile.Po' tmpdepfile='$(DEPDIR)/sysprof-profile.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-profile.o `test -f 'profile.c' || echo '$(srcdir)/'`profile.c
+
+sysprof-profile.obj: profile.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-profile.obj -MD -MP -MF "$(DEPDIR)/sysprof-profile.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-profile.obj `if test -f 'profile.c'; then $(CYGPATH_W) 'profile.c'; else $(CYGPATH_W) '$(srcdir)/profile.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-profile.Tpo" "$(DEPDIR)/sysprof-profile.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-profile.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='profile.c' object='sysprof-profile.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-profile.Po' tmpdepfile='$(DEPDIR)/sysprof-profile.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-profile.obj `if test -f 'profile.c'; then $(CYGPATH_W) 'profile.c'; else $(CYGPATH_W) '$(srcdir)/profile.c'; fi`
+
+sysprof-sfile.o: sfile.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-sfile.o -MD -MP -MF "$(DEPDIR)/sysprof-sfile.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-sfile.o `test -f 'sfile.c' || echo '$(srcdir)/'`sfile.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-sfile.Tpo" "$(DEPDIR)/sysprof-sfile.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-sfile.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sfile.c' object='sysprof-sfile.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-sfile.Po' tmpdepfile='$(DEPDIR)/sysprof-sfile.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-sfile.o `test -f 'sfile.c' || echo '$(srcdir)/'`sfile.c
+
+sysprof-sfile.obj: sfile.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-sfile.obj -MD -MP -MF "$(DEPDIR)/sysprof-sfile.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-sfile.obj `if test -f 'sfile.c'; then $(CYGPATH_W) 'sfile.c'; else $(CYGPATH_W) '$(srcdir)/sfile.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-sfile.Tpo" "$(DEPDIR)/sysprof-sfile.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-sfile.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sfile.c' object='sysprof-sfile.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-sfile.Po' tmpdepfile='$(DEPDIR)/sysprof-sfile.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-sfile.obj `if test -f 'sfile.c'; then $(CYGPATH_W) 'sfile.c'; else $(CYGPATH_W) '$(srcdir)/sfile.c'; fi`
+
+sysprof-sformat.o: sformat.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-sformat.o -MD -MP -MF "$(DEPDIR)/sysprof-sformat.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-sformat.o `test -f 'sformat.c' || echo '$(srcdir)/'`sformat.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-sformat.Tpo" "$(DEPDIR)/sysprof-sformat.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-sformat.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sformat.c' object='sysprof-sformat.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-sformat.Po' tmpdepfile='$(DEPDIR)/sysprof-sformat.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-sformat.o `test -f 'sformat.c' || echo '$(srcdir)/'`sformat.c
+
+sysprof-sformat.obj: sformat.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-sformat.obj -MD -MP -MF "$(DEPDIR)/sysprof-sformat.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-sformat.obj `if test -f 'sformat.c'; then $(CYGPATH_W) 'sformat.c'; else $(CYGPATH_W) '$(srcdir)/sformat.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-sformat.Tpo" "$(DEPDIR)/sysprof-sformat.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-sformat.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sformat.c' object='sysprof-sformat.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-sformat.Po' tmpdepfile='$(DEPDIR)/sysprof-sformat.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-sformat.obj `if test -f 'sformat.c'; then $(CYGPATH_W) 'sformat.c'; else $(CYGPATH_W) '$(srcdir)/sformat.c'; fi`
+
+sysprof-stackstash.o: stackstash.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-stackstash.o -MD -MP -MF "$(DEPDIR)/sysprof-stackstash.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-stackstash.o `test -f 'stackstash.c' || echo '$(srcdir)/'`stackstash.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-stackstash.Tpo" "$(DEPDIR)/sysprof-stackstash.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-stackstash.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='stackstash.c' object='sysprof-stackstash.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-stackstash.Po' tmpdepfile='$(DEPDIR)/sysprof-stackstash.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-stackstash.o `test -f 'stackstash.c' || echo '$(srcdir)/'`stackstash.c
+
+sysprof-stackstash.obj: stackstash.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-stackstash.obj -MD -MP -MF "$(DEPDIR)/sysprof-stackstash.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-stackstash.obj `if test -f 'stackstash.c'; then $(CYGPATH_W) 'stackstash.c'; else $(CYGPATH_W) '$(srcdir)/stackstash.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-stackstash.Tpo" "$(DEPDIR)/sysprof-stackstash.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-stackstash.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='stackstash.c' object='sysprof-stackstash.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-stackstash.Po' tmpdepfile='$(DEPDIR)/sysprof-stackstash.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-stackstash.obj `if test -f 'stackstash.c'; then $(CYGPATH_W) 'stackstash.c'; else $(CYGPATH_W) '$(srcdir)/stackstash.c'; fi`
+
+sysprof-tracker.o: tracker.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-tracker.o -MD -MP -MF "$(DEPDIR)/sysprof-tracker.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-tracker.o `test -f 'tracker.c' || echo '$(srcdir)/'`tracker.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-tracker.Tpo" "$(DEPDIR)/sysprof-tracker.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-tracker.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tracker.c' object='sysprof-tracker.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-tracker.Po' tmpdepfile='$(DEPDIR)/sysprof-tracker.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-tracker.o `test -f 'tracker.c' || echo '$(srcdir)/'`tracker.c
+
+sysprof-tracker.obj: tracker.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-tracker.obj -MD -MP -MF "$(DEPDIR)/sysprof-tracker.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-tracker.obj `if test -f 'tracker.c'; then $(CYGPATH_W) 'tracker.c'; else $(CYGPATH_W) '$(srcdir)/tracker.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-tracker.Tpo" "$(DEPDIR)/sysprof-tracker.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-tracker.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tracker.c' object='sysprof-tracker.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-tracker.Po' tmpdepfile='$(DEPDIR)/sysprof-tracker.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-tracker.obj `if test -f 'tracker.c'; then $(CYGPATH_W) 'tracker.c'; else $(CYGPATH_W) '$(srcdir)/tracker.c'; fi`
+
+sysprof-unwind.o: unwind.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-unwind.o -MD -MP -MF "$(DEPDIR)/sysprof-unwind.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-unwind.o `test -f 'unwind.c' || echo '$(srcdir)/'`unwind.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-unwind.Tpo" "$(DEPDIR)/sysprof-unwind.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-unwind.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='unwind.c' object='sysprof-unwind.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-unwind.Po' tmpdepfile='$(DEPDIR)/sysprof-unwind.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-unwind.o `test -f 'unwind.c' || echo '$(srcdir)/'`unwind.c
+
+sysprof-unwind.obj: unwind.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-unwind.obj -MD -MP -MF "$(DEPDIR)/sysprof-unwind.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-unwind.obj `if test -f 'unwind.c'; then $(CYGPATH_W) 'unwind.c'; else $(CYGPATH_W) '$(srcdir)/unwind.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-unwind.Tpo" "$(DEPDIR)/sysprof-unwind.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-unwind.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='unwind.c' object='sysprof-unwind.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-unwind.Po' tmpdepfile='$(DEPDIR)/sysprof-unwind.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-unwind.obj `if test -f 'unwind.c'; then $(CYGPATH_W) 'unwind.c'; else $(CYGPATH_W) '$(srcdir)/unwind.c'; fi`
+
+sysprof-watch.o: watch.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-watch.o -MD -MP -MF "$(DEPDIR)/sysprof-watch.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-watch.o `test -f 'watch.c' || echo '$(srcdir)/'`watch.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-watch.Tpo" "$(DEPDIR)/sysprof-watch.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-watch.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='watch.c' object='sysprof-watch.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-watch.Po' tmpdepfile='$(DEPDIR)/sysprof-watch.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-watch.o `test -f 'watch.c' || echo '$(srcdir)/'`watch.c
+
+sysprof-watch.obj: watch.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-watch.obj -MD -MP -MF "$(DEPDIR)/sysprof-watch.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-watch.obj `if test -f 'watch.c'; then $(CYGPATH_W) 'watch.c'; else $(CYGPATH_W) '$(srcdir)/watch.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-watch.Tpo" "$(DEPDIR)/sysprof-watch.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-watch.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='watch.c' object='sysprof-watch.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-watch.Po' tmpdepfile='$(DEPDIR)/sysprof-watch.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-watch.obj `if test -f 'watch.c'; then $(CYGPATH_W) 'watch.c'; else $(CYGPATH_W) '$(srcdir)/watch.c'; fi`
+
+sysprof-footreestore.o: footreestore.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-footreestore.o -MD -MP -MF "$(DEPDIR)/sysprof-footreestore.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-footreestore.o `test -f 'footreestore.c' || echo '$(srcdir)/'`footreestore.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-footreestore.Tpo" "$(DEPDIR)/sysprof-footreestore.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-footreestore.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='footreestore.c' object='sysprof-footreestore.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-footreestore.Po' tmpdepfile='$(DEPDIR)/sysprof-footreestore.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-footreestore.o `test -f 'footreestore.c' || echo '$(srcdir)/'`footreestore.c
+
+sysprof-footreestore.obj: footreestore.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-footreestore.obj -MD -MP -MF "$(DEPDIR)/sysprof-footreestore.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-footreestore.obj `if test -f 'footreestore.c'; then $(CYGPATH_W) 'footreestore.c'; else $(CYGPATH_W) '$(srcdir)/footreestore.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-footreestore.Tpo" "$(DEPDIR)/sysprof-footreestore.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-footreestore.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='footreestore.c' object='sysprof-footreestore.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-footreestore.Po' tmpdepfile='$(DEPDIR)/sysprof-footreestore.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-footreestore.obj `if test -f 'footreestore.c'; then $(CYGPATH_W) 'footreestore.c'; else $(CYGPATH_W) '$(srcdir)/footreestore.c'; fi`
+
+sysprof-footreedatalist.o: footreedatalist.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-footreedatalist.o -MD -MP -MF "$(DEPDIR)/sysprof-footreedatalist.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-footreedatalist.o `test -f 'footreedatalist.c' || echo '$(srcdir)/'`footreedatalist.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-footreedatalist.Tpo" "$(DEPDIR)/sysprof-footreedatalist.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-footreedatalist.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='footreedatalist.c' object='sysprof-footreedatalist.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-footreedatalist.Po' tmpdepfile='$(DEPDIR)/sysprof-footreedatalist.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-footreedatalist.o `test -f 'footreedatalist.c' || echo '$(srcdir)/'`footreedatalist.c
+
+sysprof-footreedatalist.obj: footreedatalist.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-footreedatalist.obj -MD -MP -MF "$(DEPDIR)/sysprof-footreedatalist.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-footreedatalist.obj `if test -f 'footreedatalist.c'; then $(CYGPATH_W) 'footreedatalist.c'; else $(CYGPATH_W) '$(srcdir)/footreedatalist.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-footreedatalist.Tpo" "$(DEPDIR)/sysprof-footreedatalist.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-footreedatalist.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='footreedatalist.c' object='sysprof-footreedatalist.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-footreedatalist.Po' tmpdepfile='$(DEPDIR)/sysprof-footreedatalist.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-footreedatalist.obj `if test -f 'footreedatalist.c'; then $(CYGPATH_W) 'footreedatalist.c'; else $(CYGPATH_W) '$(srcdir)/footreedatalist.c'; fi`
+
+sysprof-treeviewutils.o: treeviewutils.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-treeviewutils.o -MD -MP -MF "$(DEPDIR)/sysprof-treeviewutils.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-treeviewutils.o `test -f 'treeviewutils.c' || echo '$(srcdir)/'`treeviewutils.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-treeviewutils.Tpo" "$(DEPDIR)/sysprof-treeviewutils.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-treeviewutils.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='treeviewutils.c' object='sysprof-treeviewutils.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-treeviewutils.Po' tmpdepfile='$(DEPDIR)/sysprof-treeviewutils.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-treeviewutils.o `test -f 'treeviewutils.c' || echo '$(srcdir)/'`treeviewutils.c
+
+sysprof-treeviewutils.obj: treeviewutils.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-treeviewutils.obj -MD -MP -MF "$(DEPDIR)/sysprof-treeviewutils.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-treeviewutils.obj `if test -f 'treeviewutils.c'; then $(CYGPATH_W) 'treeviewutils.c'; else $(CYGPATH_W) '$(srcdir)/treeviewutils.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-treeviewutils.Tpo" "$(DEPDIR)/sysprof-treeviewutils.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-treeviewutils.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='treeviewutils.c' object='sysprof-treeviewutils.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-treeviewutils.Po' tmpdepfile='$(DEPDIR)/sysprof-treeviewutils.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-treeviewutils.obj `if test -f 'treeviewutils.c'; then $(CYGPATH_W) 'treeviewutils.c'; else $(CYGPATH_W) '$(srcdir)/treeviewutils.c'; fi`
+
+sysprof-sysprof.o: sysprof.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-sysprof.o -MD -MP -MF "$(DEPDIR)/sysprof-sysprof.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-sysprof.o `test -f 'sysprof.c' || echo '$(srcdir)/'`sysprof.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-sysprof.Tpo" "$(DEPDIR)/sysprof-sysprof.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-sysprof.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sysprof.c' object='sysprof-sysprof.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-sysprof.Po' tmpdepfile='$(DEPDIR)/sysprof-sysprof.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-sysprof.o `test -f 'sysprof.c' || echo '$(srcdir)/'`sysprof.c
+
+sysprof-sysprof.obj: sysprof.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof-sysprof.obj -MD -MP -MF "$(DEPDIR)/sysprof-sysprof.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof-sysprof.obj `if test -f 'sysprof.c'; then $(CYGPATH_W) 'sysprof.c'; else $(CYGPATH_W) '$(srcdir)/sysprof.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof-sysprof.Tpo" "$(DEPDIR)/sysprof-sysprof.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof-sysprof.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sysprof.c' object='sysprof-sysprof.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof-sysprof.Po' tmpdepfile='$(DEPDIR)/sysprof-sysprof.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof-sysprof.obj `if test -f 'sysprof.c'; then $(CYGPATH_W) 'sysprof.c'; else $(CYGPATH_W) '$(srcdir)/sysprof.c'; fi`
+
+sysprof_cli-binfile.o: binfile.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-binfile.o -MD -MP -MF "$(DEPDIR)/sysprof_cli-binfile.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-binfile.o `test -f 'binfile.c' || echo '$(srcdir)/'`binfile.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-binfile.Tpo" "$(DEPDIR)/sysprof_cli-binfile.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-binfile.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='binfile.c' object='sysprof_cli-binfile.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-binfile.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-binfile.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-binfile.o `test -f 'binfile.c' || echo '$(srcdir)/'`binfile.c
+
+sysprof_cli-binfile.obj: binfile.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-binfile.obj -MD -MP -MF "$(DEPDIR)/sysprof_cli-binfile.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-binfile.obj `if test -f 'binfile.c'; then $(CYGPATH_W) 'binfile.c'; else $(CYGPATH_W) '$(srcdir)/binfile.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-binfile.Tpo" "$(DEPDIR)/sysprof_cli-binfile.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-binfile.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='binfile.c' object='sysprof_cli-binfile.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-binfile.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-binfile.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-binfile.obj `if test -f 'binfile.c'; then $(CYGPATH_W) 'binfile.c'; else $(CYGPATH_W) '$(srcdir)/binfile.c'; fi`
+
+sysprof_cli-collector.o: collector.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-collector.o -MD -MP -MF "$(DEPDIR)/sysprof_cli-collector.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-collector.o `test -f 'collector.c' || echo '$(srcdir)/'`collector.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-collector.Tpo" "$(DEPDIR)/sysprof_cli-collector.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-collector.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='collector.c' object='sysprof_cli-collector.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-collector.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-collector.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-collector.o `test -f 'collector.c' || echo '$(srcdir)/'`collector.c
+
+sysprof_cli-collector.obj: collector.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-collector.obj -MD -MP -MF "$(DEPDIR)/sysprof_cli-collector.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-collector.obj `if test -f 'collector.c'; then $(CYGPATH_W) 'collector.c'; else $(CYGPATH_W) '$(srcdir)/collector.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-collector.Tpo" "$(DEPDIR)/sysprof_cli-collector.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-collector.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='collector.c' object='sysprof_cli-collector.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-collector.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-collector.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-collector.obj `if test -f 'collector.c'; then $(CYGPATH_W) 'collector.c'; else $(CYGPATH_W) '$(srcdir)/collector.c'; fi`
+
+sysprof_cli-demangle.o: demangle.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-demangle.o -MD -MP -MF "$(DEPDIR)/sysprof_cli-demangle.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-demangle.o `test -f 'demangle.c' || echo '$(srcdir)/'`demangle.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-demangle.Tpo" "$(DEPDIR)/sysprof_cli-demangle.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-demangle.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='demangle.c' object='sysprof_cli-demangle.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-demangle.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-demangle.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-demangle.o `test -f 'demangle.c' || echo '$(srcdir)/'`demangle.c
+
+sysprof_cli-demangle.obj: demangle.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-demangle.obj -MD -MP -MF "$(DEPDIR)/sysprof_cli-demangle.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-demangle.obj `if test -f 'demangle.c'; then $(CYGPATH_W) 'demangle.c'; else $(CYGPATH_W) '$(srcdir)/demangle.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-demangle.Tpo" "$(DEPDIR)/sysprof_cli-demangle.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-demangle.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='demangle.c' object='sysprof_cli-demangle.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-demangle.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-demangle.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-demangle.obj `if test -f 'demangle.c'; then $(CYGPATH_W) 'demangle.c'; else $(CYGPATH_W) '$(srcdir)/demangle.c'; fi`
+
+sysprof_cli-elfparser.o: elfparser.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-elfparser.o -MD -MP -MF "$(DEPDIR)/sysprof_cli-elfparser.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-elfparser.o `test -f 'elfparser.c' || echo '$(srcdir)/'`elfparser.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-elfparser.Tpo" "$(DEPDIR)/sysprof_cli-elfparser.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-elfparser.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='elfparser.c' object='sysprof_cli-elfparser.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-elfparser.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-elfparser.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-elfparser.o `test -f 'elfparser.c' || echo '$(srcdir)/'`elfparser.c
+
+sysprof_cli-elfparser.obj: elfparser.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-elfparser.obj -MD -MP -MF "$(DEPDIR)/sysprof_cli-elfparser.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-elfparser.obj `if test -f 'elfparser.c'; then $(CYGPATH_W) 'elfparser.c'; else $(CYGPATH_W) '$(srcdir)/elfparser.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-elfparser.Tpo" "$(DEPDIR)/sysprof_cli-elfparser.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-elfparser.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='elfparser.c' object='sysprof_cli-elfparser.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-elfparser.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-elfparser.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-elfparser.obj `if test -f 'elfparser.c'; then $(CYGPATH_W) 'elfparser.c'; else $(CYGPATH_W) '$(srcdir)/elfparser.c'; fi`
+
+sysprof_cli-profile.o: profile.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-profile.o -MD -MP -MF "$(DEPDIR)/sysprof_cli-profile.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-profile.o `test -f 'profile.c' || echo '$(srcdir)/'`profile.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-profile.Tpo" "$(DEPDIR)/sysprof_cli-profile.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-profile.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='profile.c' object='sysprof_cli-profile.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-profile.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-profile.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-profile.o `test -f 'profile.c' || echo '$(srcdir)/'`profile.c
+
+sysprof_cli-profile.obj: profile.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-profile.obj -MD -MP -MF "$(DEPDIR)/sysprof_cli-profile.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-profile.obj `if test -f 'profile.c'; then $(CYGPATH_W) 'profile.c'; else $(CYGPATH_W) '$(srcdir)/profile.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-profile.Tpo" "$(DEPDIR)/sysprof_cli-profile.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-profile.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='profile.c' object='sysprof_cli-profile.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-profile.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-profile.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-profile.obj `if test -f 'profile.c'; then $(CYGPATH_W) 'profile.c'; else $(CYGPATH_W) '$(srcdir)/profile.c'; fi`
+
+sysprof_cli-sfile.o: sfile.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-sfile.o -MD -MP -MF "$(DEPDIR)/sysprof_cli-sfile.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-sfile.o `test -f 'sfile.c' || echo '$(srcdir)/'`sfile.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-sfile.Tpo" "$(DEPDIR)/sysprof_cli-sfile.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-sfile.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sfile.c' object='sysprof_cli-sfile.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-sfile.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-sfile.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-sfile.o `test -f 'sfile.c' || echo '$(srcdir)/'`sfile.c
+
+sysprof_cli-sfile.obj: sfile.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-sfile.obj -MD -MP -MF "$(DEPDIR)/sysprof_cli-sfile.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-sfile.obj `if test -f 'sfile.c'; then $(CYGPATH_W) 'sfile.c'; else $(CYGPATH_W) '$(srcdir)/sfile.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-sfile.Tpo" "$(DEPDIR)/sysprof_cli-sfile.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-sfile.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sfile.c' object='sysprof_cli-sfile.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-sfile.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-sfile.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-sfile.obj `if test -f 'sfile.c'; then $(CYGPATH_W) 'sfile.c'; else $(CYGPATH_W) '$(srcdir)/sfile.c'; fi`
+
+sysprof_cli-sformat.o: sformat.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-sformat.o -MD -MP -MF "$(DEPDIR)/sysprof_cli-sformat.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-sformat.o `test -f 'sformat.c' || echo '$(srcdir)/'`sformat.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-sformat.Tpo" "$(DEPDIR)/sysprof_cli-sformat.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-sformat.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sformat.c' object='sysprof_cli-sformat.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-sformat.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-sformat.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-sformat.o `test -f 'sformat.c' || echo '$(srcdir)/'`sformat.c
+
+sysprof_cli-sformat.obj: sformat.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-sformat.obj -MD -MP -MF "$(DEPDIR)/sysprof_cli-sformat.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-sformat.obj `if test -f 'sformat.c'; then $(CYGPATH_W) 'sformat.c'; else $(CYGPATH_W) '$(srcdir)/sformat.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-sformat.Tpo" "$(DEPDIR)/sysprof_cli-sformat.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-sformat.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sformat.c' object='sysprof_cli-sformat.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-sformat.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-sformat.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-sformat.obj `if test -f 'sformat.c'; then $(CYGPATH_W) 'sformat.c'; else $(CYGPATH_W) '$(srcdir)/sformat.c'; fi`
+
+sysprof_cli-stackstash.o: stackstash.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-stackstash.o -MD -MP -MF "$(DEPDIR)/sysprof_cli-stackstash.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-stackstash.o `test -f 'stackstash.c' || echo '$(srcdir)/'`stackstash.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-stackstash.Tpo" "$(DEPDIR)/sysprof_cli-stackstash.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-stackstash.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='stackstash.c' object='sysprof_cli-stackstash.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-stackstash.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-stackstash.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-stackstash.o `test -f 'stackstash.c' || echo '$(srcdir)/'`stackstash.c
+
+sysprof_cli-stackstash.obj: stackstash.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-stackstash.obj -MD -MP -MF "$(DEPDIR)/sysprof_cli-stackstash.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-stackstash.obj `if test -f 'stackstash.c'; then $(CYGPATH_W) 'stackstash.c'; else $(CYGPATH_W) '$(srcdir)/stackstash.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-stackstash.Tpo" "$(DEPDIR)/sysprof_cli-stackstash.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-stackstash.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='stackstash.c' object='sysprof_cli-stackstash.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-stackstash.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-stackstash.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-stackstash.obj `if test -f 'stackstash.c'; then $(CYGPATH_W) 'stackstash.c'; else $(CYGPATH_W) '$(srcdir)/stackstash.c'; fi`
+
+sysprof_cli-tracker.o: tracker.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-tracker.o -MD -MP -MF "$(DEPDIR)/sysprof_cli-tracker.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-tracker.o `test -f 'tracker.c' || echo '$(srcdir)/'`tracker.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-tracker.Tpo" "$(DEPDIR)/sysprof_cli-tracker.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-tracker.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tracker.c' object='sysprof_cli-tracker.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-tracker.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-tracker.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-tracker.o `test -f 'tracker.c' || echo '$(srcdir)/'`tracker.c
+
+sysprof_cli-tracker.obj: tracker.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-tracker.obj -MD -MP -MF "$(DEPDIR)/sysprof_cli-tracker.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-tracker.obj `if test -f 'tracker.c'; then $(CYGPATH_W) 'tracker.c'; else $(CYGPATH_W) '$(srcdir)/tracker.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-tracker.Tpo" "$(DEPDIR)/sysprof_cli-tracker.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-tracker.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tracker.c' object='sysprof_cli-tracker.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-tracker.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-tracker.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-tracker.obj `if test -f 'tracker.c'; then $(CYGPATH_W) 'tracker.c'; else $(CYGPATH_W) '$(srcdir)/tracker.c'; fi`
+
+sysprof_cli-unwind.o: unwind.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-unwind.o -MD -MP -MF "$(DEPDIR)/sysprof_cli-unwind.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-unwind.o `test -f 'unwind.c' || echo '$(srcdir)/'`unwind.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-unwind.Tpo" "$(DEPDIR)/sysprof_cli-unwind.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-unwind.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='unwind.c' object='sysprof_cli-unwind.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-unwind.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-unwind.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-unwind.o `test -f 'unwind.c' || echo '$(srcdir)/'`unwind.c
+
+sysprof_cli-unwind.obj: unwind.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-unwind.obj -MD -MP -MF "$(DEPDIR)/sysprof_cli-unwind.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-unwind.obj `if test -f 'unwind.c'; then $(CYGPATH_W) 'unwind.c'; else $(CYGPATH_W) '$(srcdir)/unwind.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-unwind.Tpo" "$(DEPDIR)/sysprof_cli-unwind.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-unwind.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='unwind.c' object='sysprof_cli-unwind.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-unwind.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-unwind.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-unwind.obj `if test -f 'unwind.c'; then $(CYGPATH_W) 'unwind.c'; else $(CYGPATH_W) '$(srcdir)/unwind.c'; fi`
+
+sysprof_cli-watch.o: watch.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-watch.o -MD -MP -MF "$(DEPDIR)/sysprof_cli-watch.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-watch.o `test -f 'watch.c' || echo '$(srcdir)/'`watch.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-watch.Tpo" "$(DEPDIR)/sysprof_cli-watch.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-watch.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='watch.c' object='sysprof_cli-watch.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-watch.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-watch.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-watch.o `test -f 'watch.c' || echo '$(srcdir)/'`watch.c
+
+sysprof_cli-watch.obj: watch.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-watch.obj -MD -MP -MF "$(DEPDIR)/sysprof_cli-watch.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-watch.obj `if test -f 'watch.c'; then $(CYGPATH_W) 'watch.c'; else $(CYGPATH_W) '$(srcdir)/watch.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-watch.Tpo" "$(DEPDIR)/sysprof_cli-watch.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-watch.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='watch.c' object='sysprof_cli-watch.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-watch.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-watch.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-watch.obj `if test -f 'watch.c'; then $(CYGPATH_W) 'watch.c'; else $(CYGPATH_W) '$(srcdir)/watch.c'; fi`
+
+sysprof_cli-signal-handler.o: signal-handler.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-signal-handler.o -MD -MP -MF "$(DEPDIR)/sysprof_cli-signal-handler.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-signal-handler.o `test -f 'signal-handler.c' || echo '$(srcdir)/'`signal-handler.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-signal-handler.Tpo" "$(DEPDIR)/sysprof_cli-signal-handler.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-signal-handler.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='signal-handler.c' object='sysprof_cli-signal-handler.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-signal-handler.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-signal-handler.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-signal-handler.o `test -f 'signal-handler.c' || echo '$(srcdir)/'`signal-handler.c
+
+sysprof_cli-signal-handler.obj: signal-handler.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-signal-handler.obj -MD -MP -MF "$(DEPDIR)/sysprof_cli-signal-handler.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-signal-handler.obj `if test -f 'signal-handler.c'; then $(CYGPATH_W) 'signal-handler.c'; else $(CYGPATH_W) '$(srcdir)/signal-handler.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-signal-handler.Tpo" "$(DEPDIR)/sysprof_cli-signal-handler.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-signal-handler.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='signal-handler.c' object='sysprof_cli-signal-handler.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-signal-handler.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-signal-handler.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-signal-handler.obj `if test -f 'signal-handler.c'; then $(CYGPATH_W) 'signal-handler.c'; else $(CYGPATH_W) '$(srcdir)/signal-handler.c'; fi`
+
+sysprof_cli-sysprof-cli.o: sysprof-cli.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-sysprof-cli.o -MD -MP -MF "$(DEPDIR)/sysprof_cli-sysprof-cli.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-sysprof-cli.o `test -f 'sysprof-cli.c' || echo '$(srcdir)/'`sysprof-cli.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-sysprof-cli.Tpo" "$(DEPDIR)/sysprof_cli-sysprof-cli.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-sysprof-cli.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sysprof-cli.c' object='sysprof_cli-sysprof-cli.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-sysprof-cli.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-sysprof-cli.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-sysprof-cli.o `test -f 'sysprof-cli.c' || echo '$(srcdir)/'`sysprof-cli.c
+
+sysprof_cli-sysprof-cli.obj: sysprof-cli.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sysprof_cli-sysprof-cli.obj -MD -MP -MF "$(DEPDIR)/sysprof_cli-sysprof-cli.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sysprof_cli-sysprof-cli.obj `if test -f 'sysprof-cli.c'; then $(CYGPATH_W) 'sysprof-cli.c'; else $(CYGPATH_W) '$(srcdir)/sysprof-cli.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sysprof_cli-sysprof-cli.Tpo" "$(DEPDIR)/sysprof_cli-sysprof-cli.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sysprof_cli-sysprof-cli.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sysprof-cli.c' object='sysprof_cli-sysprof-cli.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sysprof_cli-sysprof-cli.Po' tmpdepfile='$(DEPDIR)/sysprof_cli-sysprof-cli.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sysprof_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sysprof_cli-sysprof-cli.obj `if test -f 'sysprof-cli.c'; then $(CYGPATH_W) 'sysprof-cli.c'; else $(CYGPATH_W) '$(srcdir)/sysprof-cli.c'; fi`
+
+testelf-testelf.o: testelf.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testelf_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testelf-testelf.o -MD -MP -MF "$(DEPDIR)/testelf-testelf.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o testelf-testelf.o `test -f 'testelf.c' || echo '$(srcdir)/'`testelf.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testelf-testelf.Tpo" "$(DEPDIR)/testelf-testelf.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/testelf-testelf.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testelf.c' object='testelf-testelf.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/testelf-testelf.Po' tmpdepfile='$(DEPDIR)/testelf-testelf.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testelf_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testelf-testelf.o `test -f 'testelf.c' || echo '$(srcdir)/'`testelf.c
+
+testelf-testelf.obj: testelf.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testelf_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testelf-testelf.obj -MD -MP -MF "$(DEPDIR)/testelf-testelf.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o testelf-testelf.obj `if test -f 'testelf.c'; then $(CYGPATH_W) 'testelf.c'; else $(CYGPATH_W) '$(srcdir)/testelf.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testelf-testelf.Tpo" "$(DEPDIR)/testelf-testelf.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/testelf-testelf.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testelf.c' object='testelf-testelf.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/testelf-testelf.Po' tmpdepfile='$(DEPDIR)/testelf-testelf.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testelf_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testelf-testelf.obj `if test -f 'testelf.c'; then $(CYGPATH_W) 'testelf.c'; else $(CYGPATH_W) '$(srcdir)/testelf.c'; fi`
+
+testelf-demangle.o: demangle.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testelf_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testelf-demangle.o -MD -MP -MF "$(DEPDIR)/testelf-demangle.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o testelf-demangle.o `test -f 'demangle.c' || echo '$(srcdir)/'`demangle.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testelf-demangle.Tpo" "$(DEPDIR)/testelf-demangle.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/testelf-demangle.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='demangle.c' object='testelf-demangle.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/testelf-demangle.Po' tmpdepfile='$(DEPDIR)/testelf-demangle.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testelf_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testelf-demangle.o `test -f 'demangle.c' || echo '$(srcdir)/'`demangle.c
+
+testelf-demangle.obj: demangle.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testelf_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testelf-demangle.obj -MD -MP -MF "$(DEPDIR)/testelf-demangle.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o testelf-demangle.obj `if test -f 'demangle.c'; then $(CYGPATH_W) 'demangle.c'; else $(CYGPATH_W) '$(srcdir)/demangle.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testelf-demangle.Tpo" "$(DEPDIR)/testelf-demangle.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/testelf-demangle.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='demangle.c' object='testelf-demangle.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/testelf-demangle.Po' tmpdepfile='$(DEPDIR)/testelf-demangle.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testelf_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testelf-demangle.obj `if test -f 'demangle.c'; then $(CYGPATH_W) 'demangle.c'; else $(CYGPATH_W) '$(srcdir)/demangle.c'; fi`
+
+testelf-elfparser.o: elfparser.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testelf_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testelf-elfparser.o -MD -MP -MF "$(DEPDIR)/testelf-elfparser.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o testelf-elfparser.o `test -f 'elfparser.c' || echo '$(srcdir)/'`elfparser.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testelf-elfparser.Tpo" "$(DEPDIR)/testelf-elfparser.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/testelf-elfparser.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='elfparser.c' object='testelf-elfparser.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/testelf-elfparser.Po' tmpdepfile='$(DEPDIR)/testelf-elfparser.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testelf_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testelf-elfparser.o `test -f 'elfparser.c' || echo '$(srcdir)/'`elfparser.c
+
+testelf-elfparser.obj: elfparser.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testelf_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testelf-elfparser.obj -MD -MP -MF "$(DEPDIR)/testelf-elfparser.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o testelf-elfparser.obj `if test -f 'elfparser.c'; then $(CYGPATH_W) 'elfparser.c'; else $(CYGPATH_W) '$(srcdir)/elfparser.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testelf-elfparser.Tpo" "$(DEPDIR)/testelf-elfparser.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/testelf-elfparser.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='elfparser.c' object='testelf-elfparser.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/testelf-elfparser.Po' tmpdepfile='$(DEPDIR)/testelf-elfparser.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testelf_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testelf-elfparser.obj `if test -f 'elfparser.c'; then $(CYGPATH_W) 'elfparser.c'; else $(CYGPATH_W) '$(srcdir)/elfparser.c'; fi`
+
+testunwind-testunwind.o: testunwind.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testunwind_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testunwind-testunwind.o -MD -MP -MF "$(DEPDIR)/testunwind-testunwind.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o testunwind-testunwind.o `test -f 'testunwind.c' || echo '$(srcdir)/'`testunwind.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testunwind-testunwind.Tpo" "$(DEPDIR)/testunwind-testunwind.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/testunwind-testunwind.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testunwind.c' object='testunwind-testunwind.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/testunwind-testunwind.Po' tmpdepfile='$(DEPDIR)/testunwind-testunwind.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testunwind_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testunwind-testunwind.o `test -f 'testunwind.c' || echo '$(srcdir)/'`testunwind.c
+
+testunwind-testunwind.obj: testunwind.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testunwind_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testunwind-testunwind.obj -MD -MP -MF "$(DEPDIR)/testunwind-testunwind.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o testunwind-testunwind.obj `if test -f 'testunwind.c'; then $(CYGPATH_W) 'testunwind.c'; else $(CYGPATH_W) '$(srcdir)/testunwind.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testunwind-testunwind.Tpo" "$(DEPDIR)/testunwind-testunwind.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/testunwind-testunwind.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testunwind.c' object='testunwind-testunwind.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/testunwind-testunwind.Po' tmpdepfile='$(DEPDIR)/testunwind-testunwind.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testunwind_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testunwind-testunwind.obj `if test -f 'testunwind.c'; then $(CYGPATH_W) 'testunwind.c'; else $(CYGPATH_W) '$(srcdir)/testunwind.c'; fi`
+
+testunwind-demangle.o: demangle.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testunwind_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testunwind-demangle.o -MD -MP -MF "$(DEPDIR)/testunwind-demangle.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o testunwind-demangle.o `test -f 'demangle.c' || echo '$(srcdir)/'`demangle.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testunwind-demangle.Tpo" "$(DEPDIR)/testunwind-demangle.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/testunwind-demangle.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='demangle.c' object='testunwind-demangle.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/testunwind-demangle.Po' tmpdepfile='$(DEPDIR)/testunwind-demangle.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testunwind_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testunwind-demangle.o `test -f 'demangle.c' || echo '$(srcdir)/'`demangle.c
+
+testunwind-demangle.obj: demangle.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testunwind_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testunwind-demangle.obj -MD -MP -MF "$(DEPDIR)/testunwind-demangle.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o testunwind-demangle.obj `if test -f 'demangle.c'; then $(CYGPATH_W) 'demangle.c'; else $(CYGPATH_W) '$(srcdir)/demangle.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testunwind-demangle.Tpo" "$(DEPDIR)/testunwind-demangle.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/testunwind-demangle.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='demangle.c' object='testunwind-demangle.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/testunwind-demangle.Po' tmpdepfile='$(DEPDIR)/testunwind-demangle.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testunwind_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testunwind-demangle.obj `if test -f 'demangle.c'; then $(CYGPATH_W) 'demangle.c'; else $(CYGPATH_W) '$(srcdir)/demangle.c'; fi`
+
+testunwind-elfparser.o: elfparser.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testunwind_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testunwind-elfparser.o -MD -MP -MF "$(DEPDIR)/testunwind-elfparser.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o testunwind-elfparser.o `test -f 'elfparser.c' || echo '$(srcdir)/'`elfparser.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testunwind-elfparser.Tpo" "$(DEPDIR)/testunwind-elfparser.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/testunwind-elfparser.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='elfparser.c' object='testunwind-elfparser.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/testunwind-elfparser.Po' tmpdepfile='$(DEPDIR)/testunwind-elfparser.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testunwind_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testunwind-elfparser.o `test -f 'elfparser.c' || echo '$(srcdir)/'`elfparser.c
+
+testunwind-elfparser.obj: elfparser.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testunwind_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testunwind-elfparser.obj -MD -MP -MF "$(DEPDIR)/testunwind-elfparser.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o testunwind-elfparser.obj `if test -f 'elfparser.c'; then $(CYGPATH_W) 'elfparser.c'; else $(CYGPATH_W) '$(srcdir)/elfparser.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testunwind-elfparser.Tpo" "$(DEPDIR)/testunwind-elfparser.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/testunwind-elfparser.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='elfparser.c' object='testunwind-elfparser.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/testunwind-elfparser.Po' tmpdepfile='$(DEPDIR)/testunwind-elfparser.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testunwind_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testunwind-elfparser.obj `if test -f 'elfparser.c'; then $(CYGPATH_W) 'elfparser.c'; else $(CYGPATH_W) '$(srcdir)/elfparser.c'; fi`
+
+testunwind-unwind.o: unwind.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testunwind_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testunwind-unwind.o -MD -MP -MF "$(DEPDIR)/testunwind-unwind.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o testunwind-unwind.o `test -f 'unwind.c' || echo '$(srcdir)/'`unwind.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testunwind-unwind.Tpo" "$(DEPDIR)/testunwind-unwind.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/testunwind-unwind.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='unwind.c' object='testunwind-unwind.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/testunwind-unwind.Po' tmpdepfile='$(DEPDIR)/testunwind-unwind.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testunwind_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testunwind-unwind.o `test -f 'unwind.c' || echo '$(srcdir)/'`unwind.c
+
+testunwind-unwind.obj: unwind.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testunwind_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testunwind-unwind.obj -MD -MP -MF "$(DEPDIR)/testunwind-unwind.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o testunwind-unwind.obj `if test -f 'unwind.c'; then $(CYGPATH_W) 'unwind.c'; else $(CYGPATH_W) '$(srcdir)/unwind.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testunwind-unwind.Tpo" "$(DEPDIR)/testunwind-unwind.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/testunwind-unwind.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='unwind.c' object='testunwind-unwind.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/testunwind-unwind.Po' tmpdepfile='$(DEPDIR)/testunwind-unwind.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(testunwind_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testunwind-unwind.obj `if test -f 'unwind.c'; then $(CYGPATH_W) 'unwind.c'; else $(CYGPATH_W) '$(srcdir)/unwind.c'; fi`
 uninstall-info-am:
-pixmapsDATA_INSTALL = $(INSTALL_DATA)
-install-pixmapsDATA: $(pixmaps_DATA)
+dist_pixmapsDATA_INSTALL = $(INSTALL_DATA)
+install-dist_pixmapsDATA: $(dist_pixmaps_DATA)
 	@$(NORMAL_INSTALL)
 	$(mkinstalldirs) $(DESTDIR)$(pixmapsdir)
-	@list='$(pixmaps_DATA)'; for p in $$list; do \
+	@list='$(dist_pixmaps_DATA)'; for p in $$list; do \
 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
 	  f="`echo $$p | sed -e 's|^.*/||'`"; \
-	  echo " $(pixmapsDATA_INSTALL) $$d$$p $(DESTDIR)$(pixmapsdir)/$$f"; \
-	  $(pixmapsDATA_INSTALL) $$d$$p $(DESTDIR)$(pixmapsdir)/$$f; \
+	  echo " $(dist_pixmapsDATA_INSTALL) $$d$$p $(DESTDIR)$(pixmapsdir)/$$f"; \
+	  $(dist_pixmapsDATA_INSTALL) $$d$$p $(DESTDIR)$(pixmapsdir)/$$f; \
 	done
 
-uninstall-pixmapsDATA:
+uninstall-dist_pixmapsDATA:
 	@$(NORMAL_UNINSTALL)
-	@list='$(pixmaps_DATA)'; for p in $$list; do \
+	@list='$(dist_pixmaps_DATA)'; for p in $$list; do \
 	  f="`echo $$p | sed -e 's|^.*/||'`"; \
 	  echo " rm -f $(DESTDIR)$(pixmapsdir)/$$f"; \
 	  rm -f $(DESTDIR)$(pixmapsdir)/$$f; \
 	done
-pkgdataDATA_INSTALL = $(INSTALL_DATA)
-install-pkgdataDATA: $(pkgdata_DATA)
+dist_pkgdataDATA_INSTALL = $(INSTALL_DATA)
+install-dist_pkgdataDATA: $(dist_pkgdata_DATA)
 	@$(NORMAL_INSTALL)
 	$(mkinstalldirs) $(DESTDIR)$(pkgdatadir)
-	@list='$(pkgdata_DATA)'; for p in $$list; do \
+	@list='$(dist_pkgdata_DATA)'; for p in $$list; do \
 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
 	  f="`echo $$p | sed -e 's|^.*/||'`"; \
-	  echo " $(pkgdataDATA_INSTALL) $$d$$p $(DESTDIR)$(pkgdatadir)/$$f"; \
-	  $(pkgdataDATA_INSTALL) $$d$$p $(DESTDIR)$(pkgdatadir)/$$f; \
+	  echo " $(dist_pkgdataDATA_INSTALL) $$d$$p $(DESTDIR)$(pkgdatadir)/$$f"; \
+	  $(dist_pkgdataDATA_INSTALL) $$d$$p $(DESTDIR)$(pkgdatadir)/$$f; \
 	done
 
-uninstall-pkgdataDATA:
+uninstall-dist_pkgdataDATA:
 	@$(NORMAL_UNINSTALL)
-	@list='$(pkgdata_DATA)'; for p in $$list; do \
+	@list='$(dist_pkgdata_DATA)'; for p in $$list; do \
 	  f="`echo $$p | sed -e 's|^.*/||'`"; \
 	  echo " rm -f $(DESTDIR)$(pkgdatadir)/$$f"; \
 	  rm -f $(DESTDIR)$(pkgdatadir)/$$f; \
 	done
-
-# This directory's subdirectories are mostly independent; you can cd
-# into them and run `make' without going through this Makefile.
-# To change the values of `make' variables: instead of editing Makefiles,
-# (1) if the variable is set in `config.status', edit `config.status'
-#     (which will cause the Makefiles to be regenerated when you run `make');
-# (2) otherwise, pass the desired values on the `make' command line.
-$(RECURSIVE_TARGETS):
-	@set fnord $$MAKEFLAGS; amf=$$2; \
-	dot_seen=no; \
-	target=`echo $@ | sed s/-recursive//`; \
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  echo "Making $$target in $$subdir"; \
-	  if test "$$subdir" = "."; then \
-	    dot_seen=yes; \
-	    local_target="$$target-am"; \
-	  else \
-	    local_target="$$target"; \
-	  fi; \
-	  (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
-	   || case "$$amf" in *=*) exit 1;; *k*) fail=yes;; *) exit 1;; esac; \
-	done; \
-	if test "$$dot_seen" = "no"; then \
-	  $(MAKE) $(AM_MAKEFLAGS) "$$target-am" || exit 1; \
-	fi; test -z "$$fail"
-
-mostlyclean-recursive clean-recursive distclean-recursive \
-maintainer-clean-recursive:
-	@set fnord $$MAKEFLAGS; amf=$$2; \
-	dot_seen=no; \
-	case "$@" in \
-	  distclean-* | maintainer-clean-*) list='$(DIST_SUBDIRS)' ;; \
-	  *) list='$(SUBDIRS)' ;; \
-	esac; \
-	rev=''; for subdir in $$list; do \
-	  if test "$$subdir" = "."; then :; else \
-	    rev="$$subdir $$rev"; \
-	  fi; \
-	done; \
-	rev="$$rev ."; \
-	target=`echo $@ | sed s/-recursive//`; \
-	for subdir in $$rev; do \
-	  echo "Making $$target in $$subdir"; \
-	  if test "$$subdir" = "."; then \
-	    local_target="$$target-am"; \
-	  else \
-	    local_target="$$target"; \
-	  fi; \
-	  (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
-	   || case "$$amf" in *=*) exit 1;; *k*) fail=yes;; *) exit 1;; esac; \
-	done && test -z "$$fail"
-tags-recursive:
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  test "$$subdir" = . || (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) tags); \
+dist_udevDATA_INSTALL = $(INSTALL_DATA)
+install-dist_udevDATA: $(dist_udev_DATA)
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(DESTDIR)$(udevdir)
+	@list='$(dist_udev_DATA)'; for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  f="`echo $$p | sed -e 's|^.*/||'`"; \
+	  echo " $(dist_udevDATA_INSTALL) $$d$$p $(DESTDIR)$(udevdir)/$$f"; \
+	  $(dist_udevDATA_INSTALL) $$d$$p $(DESTDIR)$(udevdir)/$$f; \
 	done
-ctags-recursive:
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  test "$$subdir" = . || (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) ctags); \
+
+uninstall-dist_udevDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_udev_DATA)'; for p in $$list; do \
+	  f="`echo $$p | sed -e 's|^.*/||'`"; \
+	  echo " rm -f $(DESTDIR)$(udevdir)/$$f"; \
+	  rm -f $(DESTDIR)$(udevdir)/$$f; \
 	done
 
 ETAGS = etags
@@ -414,21 +1331,10 @@ ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	       END { for (i in files) print i; }'`; \
 	mkid -fID $$unique
 
-TAGS: tags-recursive $(HEADERS) $(SOURCES) config.h.in $(TAGS_DEPENDENCIES) \
+TAGS:  $(HEADERS) $(SOURCES) config.h.in $(TAGS_DEPENDENCIES) \
 		$(TAGS_FILES) $(LISP)
 	tags=; \
 	here=`pwd`; \
-	if (etags --etags-include --version) >/dev/null 2>&1; then \
-	  include_option=--etags-include; \
-	else \
-	  include_option=--include; \
-	fi; \
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  if test "$$subdir" = .; then :; else \
-	    test -f $$subdir/TAGS && \
-	      tags="$$tags $$include_option=$$here/$$subdir/TAGS"; \
-	  fi; \
-	done; \
 	list='$(SOURCES) $(HEADERS) config.h.in $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
 	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
@@ -440,7 +1346,7 @@ TAGS: tags-recursive $(HEADERS) $(SOURCES) config.h.in $(TAGS_DEPENDENCIES) \
 	     $$tags $$unique
 
 ctags: CTAGS
-CTAGS: ctags-recursive $(HEADERS) $(SOURCES) config.h.in $(TAGS_DEPENDENCIES) \
+CTAGS:  $(HEADERS) $(SOURCES) config.h.in $(TAGS_DEPENDENCIES) \
 		$(TAGS_FILES) $(LISP)
 	tags=; \
 	here=`pwd`; \
@@ -478,7 +1384,6 @@ distcleancheck_listfiles = find . -type f -print
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkinstalldirs) $(distdir)/module
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \
@@ -503,19 +1408,6 @@ distdir: $(DISTFILES)
 	    test -f $(distdir)/$$file \
 	    || cp -p $$d/$$file $(distdir)/$$file \
 	    || exit 1; \
-	  fi; \
-	done
-	list='$(DIST_SUBDIRS)'; for subdir in $$list; do \
-	  if test "$$subdir" = .; then :; else \
-	    test -d $(distdir)/$$subdir \
-	    || mkdir $(distdir)/$$subdir \
-	    || exit 1; \
-	    (cd $$subdir && \
-	      $(MAKE) $(AM_MAKEFLAGS) \
-	        top_distdir="$(top_distdir)" \
-	        distdir=../$(distdir)/$$subdir \
-	        distdir) \
-	      || exit 1; \
 	  fi; \
 	done
 	-find $(distdir) -type d ! -perm -777 -exec chmod a+rwx {} \; -o \
@@ -588,21 +1480,20 @@ distcleancheck: distclean
 	       $(distcleancheck_listfiles) ; \
 	       exit 1; } >&2
 check-am: all-am
-check: check-recursive
+check: check-am
 all-am: Makefile $(PROGRAMS) $(DATA) config.h
-installdirs: installdirs-recursive
-installdirs-am:
-	$(mkinstalldirs) $(DESTDIR)$(bindir) $(DESTDIR)$(pixmapsdir) $(DESTDIR)$(pkgdatadir)
 
-install: install-recursive
-install-exec: install-exec-recursive
-install-data: install-data-recursive
-uninstall: uninstall-recursive
+installdirs:
+	$(mkinstalldirs) $(DESTDIR)$(bindir) $(DESTDIR)$(pixmapsdir) $(DESTDIR)$(pkgdatadir) $(DESTDIR)$(udevdir)
+install: install-am
+install-exec: install-exec-am
+install-data: install-data-am
+uninstall: uninstall-am
 
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 
-installcheck: installcheck-recursive
+installcheck: installcheck-am
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
 	  install_sh_PROGRAM="$(INSTALL_STRIP_PROGRAM)" INSTALL_STRIP_FLAG=-s \
@@ -618,83 +1509,76 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-clean: clean-recursive
+clean: clean-am
 
-clean-am: clean-binPROGRAMS clean-generic mostlyclean-am
+clean-am: clean-binPROGRAMS clean-generic clean-noinstPROGRAMS \
+	mostlyclean-am
 
-distclean: distclean-recursive
+distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic distclean-hdr \
 	distclean-tags
 
-dvi: dvi-recursive
+dvi: dvi-am
 
 dvi-am:
 
-info: info-recursive
+info: info-am
 
 info-am:
 
-install-data-am: install-pixmapsDATA install-pkgdataDATA
+install-data-am: install-dist_pixmapsDATA install-dist_pkgdataDATA \
+	install-dist_udevDATA
 
 install-exec-am: install-binPROGRAMS
 
-install-info: install-info-recursive
+install-info: install-info-am
 
 install-man:
 
 installcheck-am:
 
-maintainer-clean: maintainer-clean-recursive
+maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
 	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
-mostlyclean: mostlyclean-recursive
+mostlyclean: mostlyclean-am
 
 mostlyclean-am: mostlyclean-compile mostlyclean-generic
 
-pdf: pdf-recursive
+pdf: pdf-am
 
 pdf-am:
 
-ps: ps-recursive
+ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-info-am \
-	uninstall-pixmapsDATA uninstall-pkgdataDATA
+uninstall-am: uninstall-binPROGRAMS uninstall-dist_pixmapsDATA \
+	uninstall-dist_pkgdataDATA uninstall-dist_udevDATA \
+	uninstall-info-am
 
-uninstall-info: uninstall-info-recursive
+.PHONY: CTAGS GTAGS all all-am check check-am clean clean-binPROGRAMS \
+	clean-generic clean-noinstPROGRAMS ctags dist dist-all \
+	dist-gzip distcheck distclean distclean-compile \
+	distclean-generic distclean-hdr distclean-tags distcleancheck \
+	distdir distuninstallcheck dvi dvi-am info info-am install \
+	install-am install-binPROGRAMS install-data install-data-am \
+	install-dist_pixmapsDATA install-dist_pkgdataDATA \
+	install-dist_udevDATA install-exec install-exec-am install-info \
+	install-info-am install-man install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
+	uninstall-am uninstall-binPROGRAMS uninstall-dist_pixmapsDATA \
+	uninstall-dist_pkgdataDATA uninstall-dist_udevDATA \
+	uninstall-info-am
 
-.PHONY: $(RECURSIVE_TARGETS) CTAGS GTAGS all all-am check check-am clean \
-	clean-binPROGRAMS clean-generic clean-recursive ctags \
-	ctags-recursive dist dist-all dist-gzip distcheck distclean \
-	distclean-compile distclean-generic distclean-hdr \
-	distclean-recursive distclean-tags distcleancheck distdir \
-	distuninstallcheck dvi dvi-am dvi-recursive info info-am \
-	info-recursive install install-am install-binPROGRAMS \
-	install-data install-data-am install-data-recursive \
-	install-exec install-exec-am install-exec-recursive \
-	install-info install-info-am install-info-recursive install-man \
-	install-pixmapsDATA install-pkgdataDATA install-recursive \
-	install-strip installcheck installcheck-am installdirs \
-	installdirs-am installdirs-recursive maintainer-clean \
-	maintainer-clean-generic maintainer-clean-recursive mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-recursive \
-	pdf pdf-am pdf-recursive ps ps-am ps-recursive tags \
-	tags-recursive uninstall uninstall-am uninstall-binPROGRAMS \
-	uninstall-info-am uninstall-info-recursive \
-	uninstall-pixmapsDATA uninstall-pkgdataDATA uninstall-recursive
-
-
-insert-module:
-	/sbin/modprobe -r sysprof-module
-	/sbin/modprobe sysprof-module
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
