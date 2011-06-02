@@ -3,8 +3,9 @@ sysprof (1.1.6-1.1) UNRELEASED; urgency=low
   * Non-maintainer upload.
   * [60298da] New upstream release
   * [5b9b9e4] Update the packaging to match sources
+  * [fcb913a] Cherry-pick upstream cursor fix
 
- -- Pauli Nieminen <suokkos@gmail.com>  Thu, 02 Jun 2011 17:39:34 +0300
+ -- Pauli Nieminen <suokkos@gmail.com>  Thu, 02 Jun 2011 20:15:45 +0300
 
 sysprof (1.0.12-5) unstable; urgency=low
 
