@@ -1,11 +1,14 @@
-sysprof (1.1.6-1.1) UNRELEASED; urgency=low
+sysprof (1.1.6-1) experimental; urgency=low
 
-  * Non-maintainer upload.
+  [ Pauli Nieminen ]
   * [60298da] New upstream release
   * [5b9b9e4] Update the packaging to match sources
   * [fcb913a] Cherry-pick upstream cursor fix
 
- -- Pauli Nieminen <suokkos@gmail.com>  Thu, 02 Jun 2011 20:15:45 +0300
+  [ Ritesh Raj Sarraf ]
+  * New Upstream Release (Closes: #628979)  
+
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Sat, 11 Jun 2011 17:40:37 +0530
 
 sysprof (1.0.12-5) unstable; urgency=low
 
