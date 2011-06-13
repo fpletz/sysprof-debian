@@ -1,6 +1,6 @@
 sysprof (1.1.6-2) unstable; urgency=low
 
- The new 1.1 release does not have a separate kernel module. sysprof now uses
- the in-kernel ftrace and performance counters framework.
+  The new 1.1 release does not have a separate kernel module. sysprof now uses
+  the in-kernel ftrace and performance counters framework.
 
- -- Ritesh Raj Sarraf <rrs@debian.org>  Mon, 13 Jun 2011 23:06:00 +0530
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Mon, 13 Jun 2011 23:15:27 +0530
