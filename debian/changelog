@@ -1,8 +1,10 @@
 sysprof (1.1.8-1) unstable; urgency=low
 
-  * New upstream release 
+  * New upstream release (Closes: #634014)
+  * [9e72a4d] drop patch Call-gdk_flush-in-set_busy.patch
+  * [9e158a6] update patch Don-t-install-udev-rule.patch
 
- -- Ritesh Raj Sarraf <rrs@debian.org>  Tue, 26 Jul 2011 12:14:39 +0530
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Tue, 26 Jul 2011 12:55:14 +0530
 
 sysprof (1.1.6-2) unstable; urgency=low
 
