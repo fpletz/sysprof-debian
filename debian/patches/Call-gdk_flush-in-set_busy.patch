@@ -1,0 +1,37 @@
+From 9e7db72edb549c63a51d82dee473f832c7f01edc Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?S=C3=B8ren=20Sandmann=20Pedersen?= <sandmann@daimi.au.dk>
+Date: Fri, 5 Nov 2010 00:21:17 -0400
+Subject: [PATCH] Call gdk_flush() in set_busy().
+
+Otherwise, the cursor won't show up. (GTK+ 2.22).
+---
+ sysprof.c |    6 ++----
+ 1 files changed, 2 insertions(+), 4 deletions(-)
+
+diff --git a/sysprof.c b/sysprof.c
+index cc676a9..55f1b09 100644
+--- a/sysprof.c
++++ b/sysprof.c
+@@ -270,6 +270,8 @@ set_busy (GtkWidget *widget,
+ 
+     if (cursor)
+ 	gdk_cursor_unref (cursor);
++
++    gdk_flush();
+ }
+ 
+ static void
+@@ -1726,10 +1728,6 @@ main (int    argc,
+ 	g_idle_add_full (G_PRIORITY_LOW, load_file, file_open_data, NULL);
+     }
+ 
+-#if 0
+-    g_idle_add (gtk_main_quit, NULL);
+-#endif
+-
+     gtk_main ();
+ 
+     return 0;
+-- 
+1.7.5.3
+
