@@ -270,6 +270,8 @@ set_busy (GtkWidget *widget,
 
     if (cursor)
 	gdk_cursor_unref (cursor);
+
+    gdk_flush();
 }
 
 static void
@@ -363,7 +365,7 @@ on_start_toggled (GtkWidget *widget, gpointer data)
 	return;
     }
 
-    if (collector_start (app->collector, &err))
+    if (collector_start (app->collector, -1, &err))
     {
 	delete_data (app);
 
@@ -1725,10 +1727,6 @@ main (int    argc,
 	 */
 	g_idle_add_full (G_PRIORITY_LOW, load_file, file_open_data, NULL);
     }
-
-#if 0
-    g_idle_add (gtk_main_quit, NULL);
-#endif
 
     gtk_main ();
 
