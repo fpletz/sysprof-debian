@@ -32,7 +32,6 @@ SYSPROF_CORE =					\
 	watch.h					\
 	watch.c					\
 						\
-	perf_counter.h				\
 	util.h
 
 #	module/sysprof-module.h			
@@ -100,7 +99,7 @@ sysprof_cli_LDADD = $(CORE_DEP_LIBS)
 # 
 # Test programs
 #
-noinst_PROGRAMS = testelf testunwind
+noinst_PROGRAMS = testelf testunwind testdemangle
 
 # testunwind
 testunwind_SOURCES =	\
@@ -122,3 +121,12 @@ testelf_SOURCES =	\
 
 testelf_CPPFLAGS = $(CORE_DEP_CFLAGS)
 testelf_LDADD = $(CORE_DEP_LIBS)
+
+# testdemangle
+testdemangle_SOURCES =	\
+	testdemangle.c	\
+	elfparser.c	\
+	elfparser.h	\
+	demangle.c
+testdemangle_CPPFLAGS = $(CORE_DEP_CFLAGS)
+testdemangle_LDADD = $(CORE_DEP_LIBS)
