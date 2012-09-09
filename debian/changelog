@@ -1,6 +1,8 @@
 sysprof (1.2.0-1) UNRELEASED; urgency=low
 
   * New upstream release
+  * [abc819c] Update patch Don-t-install-udev-rule.patch
+  * [f02966c] Bump Standards-Version to 3.9.3, no changes required
 
  -- Franz Pletz <fpletz@fnordicwalking.de>  Sun, 09 Sep 2012 11:30:13 +0200
 
