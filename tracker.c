@@ -3,12 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <glib/gprintf.h>
-
+#include <linux/perf_event.h>
 #include "tracker.h"
 #include "stackstash.h"
 #include "binfile.h"
 #include "elfparser.h"
-#include "perf_counter.h"
 
 typedef struct new_process_t new_process_t;
 typedef struct new_map_t new_map_t;
@@ -825,7 +824,7 @@ lookup_kernel_symbol (gulong address)
      * Below we filter out the [irq stack]
      */
     i = 0;
-    while (skip_kernel_symbols[i][0] != '\0')
+    while (sym && skip_kernel_symbols[i][0] != '\0')
     {
 	if (strcmp (sym, skip_kernel_symbols[i]) == 0)
 	{
