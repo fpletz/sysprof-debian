@@ -1,3 +1,9 @@
+sysprof (1.2.0-1) UNRELEASED; urgency=low
+
+  * New upstream release
+
+ -- Franz Pletz <fpletz@fnordicwalking.de>  Sun, 09 Sep 2012 11:30:13 +0200
+
 sysprof (1.1.8-1) unstable; urgency=low
 
   * New upstream release (Closes: #634014)
